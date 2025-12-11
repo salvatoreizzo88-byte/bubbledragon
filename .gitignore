@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# iOS build artifacts
+ios/App/Pods/
+ios/App/App.xcworkspace/
+ios/App/DerivedData/
+
+# Android build artifacts
+android/.gradle/
+android/app/build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build
+www/

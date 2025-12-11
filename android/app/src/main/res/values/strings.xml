@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Bubble Bobble Nostalgie</string>
+    <string name="title_activity_main">Bubble Bobble Nostalgie</string>
+    <string name="package_name">com.salvatoreizzo.bubblebobble</string>
+    <string name="custom_url_scheme">com.salvatoreizzo.bubblebobble</string>
+</resources>

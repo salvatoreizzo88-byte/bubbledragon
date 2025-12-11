@@ -1,0 +1,572 @@
+import InputHandler from './Input.js';
+import Player from './Player.js';
+import Level from './Level.js';
+import Enemy from './Enemy.js';
+import Fruit from './Fruit.js';
+import PowerUp from './PowerUp.js';
+import Coin from './Coin.js';
+import ParticleSystem from './ParticleSystem.js';
+import TutorialManager from './TutorialManager.js';
+
+export default class Game {
+    constructor(width, height, audioManager) {
+        this.width = width;
+        this.height = height;
+        this.audioManager = audioManager;
+        this.input = new InputHandler();
+        this.level = new Level(this); // Initialize Level
+        this.player = new Player(this);
+        this.bubbles = [];
+        this.enemies = [];
+        this.fruits = [];
+        this.powerUps = [];
+        this.coins = []; // Collectible coins
+        this.keys = [];
+        this.score = 0;
+        this.sessionCoins = 0;
+        this.sessionXP = 0; // XP collected in this session from fruit
+        this.gameOver = false;
+
+        this.levelIndex = 0;
+        this.transitionTimer = 0;
+        this.transitionDuration = 900; // 15 seconds * 60 fps
+        this.levelComplete = false;
+
+        // Coin spawn tracking
+        this.coinSpawnCooldown = 0;
+        this.coinsSpawnedInLevel = 0;
+
+        // Particle system for visual effects
+        this.particles = new ParticleSystem();
+
+        // Tutorial system
+        this.tutorial = new TutorialManager(this);
+
+        this.startLevel();
+    }
+
+    setGameState(gameState) {
+        this.gameState = gameState;
+    }
+
+    resetGame() {
+        this.score = 0;
+        this.levelIndex = 0;
+        this.gameOver = false;
+        this.victory = false;
+        this.sessionCoins = 0;
+
+        // Achievement tracking for this run
+        this.deathsThisRun = 0;
+        this.wasHitThisLevel = false;
+        this.levelStartTime = Date.now();
+
+        // Increment games played stat
+        if (this.gameState) {
+            this.gameState.incrementStat('gamesPlayed');
+        }
+
+        this.startLevel();
+
+        // Apply extra lives from achievements (only on game reset, not level reset)
+        if (this.player.achievementExtraLives > 0) {
+            this.player.lives += this.player.achievementExtraLives;
+            console.log(`+${this.player.achievementExtraLives} vite extra da achievement!`);
+        }
+    }
+
+    togglePause() {
+        if (this.gameOver) return;
+        this.paused = !this.paused;
+    }
+
+    restartLevel() {
+        this.paused = false;
+        this.startLevel();
+    }
+
+    startLevel() {
+        this.level.load(this.levelIndex);
+        this.enemies = [];
+        this.bubbles = [];
+        this.fruits = [];
+        this.powerUps = [];
+        this.coins = [];
+        if (this.levelIndex === 0) this.sessionCoins = 0;
+
+        // Use new reset method for player (handles position & invulnerability)
+        this.player.reset();
+
+        // Apply purchased powerups
+        if (this.gameState) {
+            this.player.applyPowerups(this.gameState);
+        }
+
+        this.levelComplete = false;
+        this.transitionTimer = 0;
+        this.powerUpsSpawnedCount = 0;
+        this.powerUpCooldown = 0;
+        this.powerUpsSpawnedTypes = []; // Track which types spawned this level
+        this.coinSpawnCooldown = 0;
+        this.coinsSpawnedInLevel = 0;
+
+        // Reset level-specific achievement tracking
+        this.wasHitThisLevel = false;
+        this.levelStartTime = Date.now();
+
+        // Spawn enemies based on level - use valid spawn positions
+        const enemyCount = Math.min(2 + this.levelIndex, 10); // Increase difficulty, cap at 10
+        for (let i = 0; i < enemyCount; i++) {
+            const spawnPos = this.level.getRandomSpawnPosition();
+            this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y));
+        }
+    }
+
+    update(deltaTime) {
+        if (this.paused) return;
+        if (this.gameOver) return;
+
+        // Calculate timeScale (normalize to 60fps)
+        // If 60fps, deltaTime ~16.67ms -> timeScale = 1
+        // If 120fps, deltaTime ~8.33ms -> timeScale = 0.5
+        const timeScale = deltaTime / 16.67;
+
+        // Check Level Complete
+        if (this.enemies.length === 0 && !this.levelComplete) {
+            this.levelComplete = true;
+            console.log("Level Complete! Waiting 15 seconds...");
+        }
+
+        if (this.levelComplete) {
+            // If all fruits are collected, speed up transition
+            // Timer is based on frames in original code (transitionTimer++), so it will race at 120fps.
+            // Let's change timer to be time-based or scale increment.
+            // Current duration: 900 frames (15s @ 60fps).
+
+            // If we keep frames, it's faster on 120Hz. Let's add timeScale.
+            if (this.fruits.length === 0) {
+                this.transitionTimer = this.transitionDuration + 1;
+            } else {
+                this.transitionTimer += timeScale;
+            }
+
+            if (this.transitionTimer > this.transitionDuration) {
+                // Unlock next level in persistence
+                if (this.gameState) {
+                    this.gameState.unlockNextLevel(this.levelIndex);
+                }
+
+                this.levelIndex++;
+                if (this.player.lives <= 0) {
+                    this.gameOver = true;
+                    this.audioManager.playSound('gameover');
+                    document.getElementById('game-over-screen').style.display = 'flex';
+                    document.getElementById('session-coins').innerText = this.sessionCoins;
+                    // Save coins to total
+                    this.gameState.addCoins(this.sessionCoins);
+
+                    // Submit to leaderboard - use dragon level (XP-based) for ranking
+                    if (this.gameState && window.Database) {
+                        console.log('Submitting to leaderboard:', {
+                            username: this.gameState.username,
+                            dragonLevel: this.gameState.playerLevel,
+                            maxGameLevel: this.levelIndex
+                        });
+                        window.Database.submitScore(
+                            this.gameState.username,
+                            this.gameState.playerLevel, // Dragon level for ranking
+                            this.levelIndex // Max game level reached
+                        );
+                    }
+                }
+
+                // Check achievements for this level completion
+                const levelTime = (Date.now() - this.levelStartTime) / 1000;
+                if (this.gameState) {
+                    this.gameState.incrementStat('levelsCompleted');
+                    this.gameState.incrementStat('totalCoinsEarned', this.sessionCoins);
+                }
+                if (window.achievementManager) {
+                    window.achievementManager.checkLevelComplete(
+                        this.levelIndex,
+                        levelTime,
+                        this.wasHitThisLevel,
+                        this.deathsThisRun
+                    );
+                }
+
+                if (this.levelIndex >= 100) {
+                    this.victory = true;
+                    this.gameOver = true;
+                } else {
+                    this.startLevel();
+                }
+                return; // Skip update for one frame
+            }
+        }
+
+        this.player.update(this.input.keys, timeScale); // Pass timeScale instead of deltaTime
+
+        // Move X
+        this.player.x += this.player.speedX * timeScale;
+        this.level.checkCollisionX(this.player);
+
+        // Move Y
+        this.player.y += this.player.speedY * timeScale;
+        this.level.checkCollisionY(this.player);
+
+        this.bubbles.forEach(bubble => {
+            bubble.update(timeScale); // Pass timeScale
+            bubble.x += bubble.speedX * timeScale;
+            this.level.checkCollisionX(bubble);
+            bubble.y += bubble.speedY * timeScale;
+            this.level.checkCollisionY(bubble);
+        });
+        this.bubbles = this.bubbles.filter(bubble => !bubble.markedForDeletion);
+
+        this.enemies.forEach(enemy => {
+            enemy.update(timeScale); // Pass timeScale
+            if (!enemy.trapped) {
+                enemy.x += enemy.speedX * timeScale;
+                this.level.checkCollisionX(enemy);
+                enemy.y += enemy.speedY * timeScale;
+                this.level.checkCollisionY(enemy);
+            } else {
+                // Trapped enemies just float with bubble, position updated in Enemy.js via bubbleRef
+                // But Enemy.js update logic might need adjustment if it relied on super.update
+                // Actually Enemy.js sets x/y directly when trapped, so it's fine.
+            }
+
+            // Check collision with bubbles
+            this.bubbles.forEach(bubble => {
+                if (!enemy.trapped && this.checkCollision(bubble, enemy)) {
+                    enemy.trap(bubble);
+                    bubble.state = 'trapped'; // Visual change?
+
+                    // Tutorial: enemy trapped
+                    this.tutorial.checkAction('trap');
+                }
+            });
+
+            // NOTE: Enemy collision with player is handled in the updatePowerups section
+            // which properly checks for shield, lives, and invulnerability
+        });
+
+        // Fruits Update
+        this.fruits.forEach(fruit => {
+            fruit.update(timeScale); // Pass timeScale
+
+            // Move X (scatter)
+            fruit.x += fruit.speedX * timeScale;
+            this.level.checkCollisionX(fruit);
+
+            // Move Y (gravity)
+            fruit.y += fruit.speedY * timeScale;
+            this.level.checkCollisionY(fruit);
+
+            // Check collision with player
+            if (fruit.collectible && this.checkCollision(this.player, fruit)) {
+                fruit.markedForDeletion = true;
+                this.score += fruit.points;
+
+                // Particle effect for collecting fruit
+                this.particles.collectItem(fruit.x + fruit.width / 2, fruit.y + fruit.height / 2, '#ffd700');
+
+                if (this.gameState) {
+                    this.gameState.addCoins(10); // Each fruit gives 10 coins
+                    this.gameState.incrementStat('totalFruitCollected');
+                    this.sessionCoins = (this.sessionCoins || 0) + 10;
+                }
+                this.updateUI();
+            }
+        });
+        this.fruits = this.fruits.filter(fruit => !fruit.markedForDeletion);
+
+        // Check if player pops a trapped enemy
+        this.bubbles.forEach(bubble => {
+            // We need to find if this bubble has an enemy
+            // Simplified: The enemy holds the ref to the bubble.
+            // So we iterate enemies to see if they are trapped and touching player
+        });
+
+        this.enemies.forEach(enemy => {
+            if (enemy.trapped && this.checkCollision(this.player, enemy)) {
+                // Particle effects for defeating enemy
+                this.particles.enemyDefeated(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2);
+                this.particles.bubblePop(enemy.bubbleRef.x + 16, enemy.bubbleRef.y + 16);
+
+                // Tutorial: enemy popped
+                this.tutorial.checkAction('pop');
+
+                // Pop enemy
+                enemy.markedForDeletion = true;
+                enemy.bubbleRef.markedForDeletion = true;
+                this.score += 1000;
+
+                // Spawn Fruit from top at random X, avoiding side walls (40px)
+                // Width available: 800 - 40(left) - 40(right) - 32(fruit) = 688
+                const randomX = 40 + Math.random() * (this.width - 80 - 32);
+                console.log("Spawning fruit at", randomX, 60);
+                this.fruits.push(new Fruit(this, randomX, 60)); // Start below the ceiling
+
+                this.updateUI();
+            }
+        });
+
+        this.enemies = this.enemies.filter(enemy => !enemy.markedForDeletion);
+
+        // PowerUps Update
+        // Cooldown decreases over time
+        if (this.powerUpCooldown > 0) {
+            this.powerUpCooldown -= timeScale;
+        }
+
+        // Spawn powerup if: no cooldown, random chance, max 1 on screen
+        // Spawn rate decreases as more powerups have spawned
+        const baseSpawnRate = 0.01;
+        const spawnRate = baseSpawnRate / (1 + this.powerUpsSpawnedCount * 0.3);
+
+        if (this.powerUpCooldown <= 0 && Math.random() < spawnRate * timeScale && this.powerUps.length < 1) {
+            // Only spawn powerups that player has PURCHASED in shop
+            const allPowerupTypes = ['long_range', 'speed_boost', 'rapid_fire', 'shield', 'double_jump'];
+            const purchasedTypes = allPowerupTypes.filter(type =>
+                this.gameState && this.gameState.hasItem(type)
+            );
+
+            // Filter out types that have already spawned this level
+            const availableTypes = purchasedTypes.filter(type =>
+                !this.powerUpsSpawnedTypes.includes(type)
+            );
+
+            // Only spawn if there are available types
+            if (availableTypes.length > 0) {
+                // Spawn powerup at random X at top
+                const randomX = 40 + Math.random() * (this.width - 80 - 32);
+
+                // Random powerup type from AVAILABLE items only
+                const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+
+                this.powerUps.push(new PowerUp(this, randomX, 60, randomType));
+                this.powerUpsSpawnedCount++;
+                this.powerUpsSpawnedTypes.push(randomType); // Track this type as spawned
+
+                // Cooldown increases with each spawn (3 sec base + 2 sec per spawn)
+                this.powerUpCooldown = 180 + (this.powerUpsSpawnedCount * 120);
+                console.log("PowerUp spawned:", randomType, "- Next cooldown:", this.powerUpCooldown / 60, "sec");
+            }
+        }
+
+        this.powerUps.forEach(powerUp => {
+            powerUp.update(timeScale); // Pass timeScale
+            // Move Y (gravity)
+            powerUp.y += powerUp.speedY * timeScale;
+            this.level.checkCollisionY(powerUp);
+
+            // Check collision with player
+            if (powerUp.collectible && this.checkCollision(this.player, powerUp)) {
+                powerUp.markedForDeletion = true;
+                this.audioManager.playSound('coin');
+
+                // Apply effect based on type
+                switch (powerUp.type) {
+                    case 'long_range':
+                        this.player.bubbleShootDuration = 150;
+                        console.log("PowerUp: Lunga Gittata!");
+                        break;
+                    case 'speed_boost':
+                        this.player.speed = this.player.baseSpeed * 2;
+                        console.log("PowerUp: Velocità!");
+                        break;
+                    case 'rapid_fire':
+                        this.player.shootInterval = 5;
+                        console.log("PowerUp: Fuoco Rapido!");
+                        break;
+                    case 'shield':
+                        this.player.shieldActive = true;
+                        console.log("PowerUp: Scudo!");
+                        break;
+                    case 'double_jump':
+                        this.player.hasDoubleJump = true;
+                        console.log("PowerUp: Doppio Salto!");
+                        break;
+                }
+
+                this.score += 200;
+                this.updateUI();
+
+                // Track stat for achievements
+                if (this.gameState) {
+                    this.gameState.incrementStat('powerupsCollected');
+                }
+            }
+        });
+        this.powerUps = this.powerUps.filter(p => !p.markedForDeletion);
+
+        // Fruit collision - gives XP now
+        this.fruits.forEach((fruit, fIndex) => {
+            if (this.checkCollision(this.player, fruit)) {
+                this.fruits.splice(fIndex, 1);
+
+                // Give XP to player (in-game) and save to gameState (persistent)
+                const leveledUp = this.player.addXP(fruit.xpValue);
+                this.score += 100; // Still gain some score
+                this.sessionXP += fruit.xpValue; // Track session XP for HUD
+
+                // Save XP to persistent gameState
+                if (this.gameState) {
+                    this.gameState.addXP(fruit.xpValue);
+                }
+
+                // If level up, reapply stats and show effect
+                if (leveledUp && this.gameState) {
+                    this.player.applyPowerups(this.gameState);
+                    this.audioManager.playSound('powerup');
+                } else {
+                    this.audioManager.playSound('coin');
+                }
+
+                this.updateUI(); // Update HUD after XP change
+            }
+        });
+
+        // Coin spawn logic (random spawn every few seconds)
+        if (this.coinSpawnCooldown > 0) {
+            this.coinSpawnCooldown -= timeScale;
+        } else if (this.coins.length < 3 && !this.levelComplete) {
+            // Spawn coin at random position
+            const spawnPos = this.level.getRandomSpawnPosition();
+            this.coins.push(new Coin(this, spawnPos.x, spawnPos.y - 40));
+            this.coinsSpawnedInLevel++;
+            // Cooldown increases with each spawn
+            this.coinSpawnCooldown = 180 + this.coinsSpawnedInLevel * 60; // 3-5+ seconds
+            console.log('Coin spawned!');
+        }
+
+        // Coin update and collision
+        this.coins.forEach(coin => {
+            coin.update(timeScale);
+            coin.x += coin.speedX * timeScale;
+            this.level.checkCollisionX(coin);
+            coin.y += coin.speedY * timeScale;
+            this.level.checkCollisionY(coin);
+        });
+
+        this.coins.forEach((coin, cIndex) => {
+            if (this.checkCollision(this.player, coin)) {
+                // Particle effect for coin
+                this.particles.collectItem(coin.x + coin.width / 2, coin.y + coin.height / 2, '#ffd700');
+
+                this.coins.splice(cIndex, 1);
+
+                // Calculate coins with bonus from achievements
+                let coinValue = coin.value;
+                if (this.player.coinBonusPercent > 0) {
+                    coinValue = Math.floor(coinValue * (1 + this.player.coinBonusPercent / 100));
+                }
+                this.sessionCoins += coinValue;
+
+                // Track stats
+                if (this.gameState) {
+                    this.gameState.incrementStat('totalCoinsEarned', coinValue);
+                }
+
+                this.audioManager.playSound('coin');
+            }
+        });
+
+        // Check collision with trapped enemies
+        this.enemies.forEach((enemy, eIndex) => {
+            if (enemy.trapped && this.checkCollision(this.player, enemy)) {
+                // Pop enemy
+                // Spawn fruit
+                this.fruits.push(new Fruit(this, enemy.x, enemy.y));
+
+                this.enemies.splice(eIndex, 1);
+
+                this.audioManager.playSound('pop');
+
+                // Track enemy trapped for achievements
+                if (this.gameState) {
+                    this.gameState.incrementStat('enemiesTrapped');
+                }
+            } else if (!enemy.trapped && !this.player.isInvulnerable() && this.checkCollision(this.player, enemy)) {
+                // Mark that player was hit this level
+                this.wasHitThisLevel = true;
+
+                // Check if shield protects the player
+                if (this.player.shieldActive) {
+                    this.player.shieldActive = false;
+                    this.player.invulnerableTimer = 180; // Give invulnerability
+                    this.audioManager.playSound('pop');
+                    console.log("Scudo consumato!");
+                } else {
+                    this.player.lives--;
+                    this.deathsThisRun++;
+                    if (this.gameState) {
+                        this.gameState.incrementStat('totalDeaths');
+                    }
+                    this.player.reset();
+                    if (this.gameState) {
+                        this.player.applyPowerups(this.gameState);
+                    }
+                    this.sessionCoins = Math.floor(this.sessionCoins * 0.8);
+                }
+            }
+        });
+    }
+
+    draw(context) {
+        // Update particles each frame
+        this.particles.update();
+
+        // Update tutorial
+        if (this.tutorial.active) {
+            this.tutorial.update(this.input.keys);
+        }
+
+        this.level.draw(context); // Draw level first
+        this.fruits.forEach(fruit => fruit.draw(context));
+        this.coins.forEach(coin => coin.draw(context));
+        this.enemies.forEach(enemy => enemy.draw(context));
+        this.bubbles.forEach(bubble => bubble.draw(context));
+        this.powerUps.forEach(powerUp => powerUp.draw(context));
+        this.player.draw(context);
+
+        // Draw particles on top
+        this.particles.draw(context);
+
+        // Draw tutorial indicators
+        this.tutorial.draw(context);
+
+        if (this.gameOver) {
+            // Game Over handled by main.js UI
+        }
+
+        if (this.levelComplete) {
+            context.fillStyle = 'white';
+            context.font = '20px "Press Start 2P"';
+            context.textAlign = 'center';
+            const secondsLeft = Math.ceil((this.transitionDuration - this.transitionTimer) / 60);
+            context.fillText('LIVELLO COMPLETATO!', this.width / 2, this.height / 2 - 20);
+            context.fillText('PROSSIMO LIVELLO: ' + secondsLeft, this.width / 2, this.height / 2 + 20);
+        }
+    }
+
+    updateUI() {
+        const scoreEl = document.getElementById('score');
+        const coinsEl = document.getElementById('high-score');
+        if (scoreEl) scoreEl.innerText = '⭐ XP: ' + this.sessionXP;
+        if (coinsEl) coinsEl.innerText = '🪙 MONETE: ' + this.sessionCoins;
+    }
+
+    addBubble(bubble) {
+        this.bubbles.push(bubble);
+    }
+
+    checkCollision(rect1, rect2) {
+        return (rect1.x < rect2.x + rect2.width &&
+            rect1.x + rect1.width > rect2.x &&
+            rect1.y < rect2.y + rect2.height &&
+            rect1.y + rect1.height > rect2.y);
+    }
+}

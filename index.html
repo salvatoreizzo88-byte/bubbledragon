@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Stack & Dash</title>
+
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#7C4DFF">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Stack & Dash">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+
+    <link rel="stylesheet" href="style.css">
+    <!-- Firebase SDKs -->
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW registration failed:', err));
+            });
+        }
+    </script>
+</head>
+
+<body>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        <div id="ui-layer">
+            <div id="score">⭐ XP: 0</div>
+            <div id="high-score">🪙 MONETE: 0</div>
+        </div>
+        <div id="start-screen"
+            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #1a0030 0%, #000 50%, #001a00 100%); display: flex; flex-direction: column; color: white; z-index: 20; pointer-events: auto; padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 10px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 10px); box-sizing: border-box;">
+            <!-- Start Screen -->
+            <div id="main-menu"
+                style="display: flex; flex-direction: column; align-items: center; justify-content: space-around; width: 100%; height: 100%; box-sizing: border-box;">
+
+                <!-- TOP: Title + Profile -->
+                <div style="display: flex; flex-direction: column; align-items: center; width: 100%;">
+                    <h1
+                        style="font-size: 5vw; margin: 0; text-shadow: 2px 2px #ff00de; font-family: 'Press Start 2P'; color: #00ffff;">
+                        BUBBLE BOBBLE</h1>
+                    <div class="profile-bar" style="padding: 3px 8px; font-size: 7px; gap: 5px; margin-top: 3px;">
+                        <div id="user-display" style="font-size: 6px;">OSPITE</div>
+                        <button id="change-name-btn"
+                            style="font-size: 10px; padding: 2px 5px; background: transparent; border: none; cursor: pointer;">✏️</button>
+                        <button id="auth-btn" style="font-size: 6px; padding: 3px 6px;">ACCEDI</button>
+                    </div>
+                </div>
+
+                <!-- MIDDLE: Level Preview + XP -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 5px;">
+                    <div id="level-carousel" style="display: flex; align-items: center; gap: 8px;">
+                        <button id="prev-level-btn" class="menu-arrow-btn"
+                            style="font-size: 20px; padding: 8px 12px;">◀</button>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <canvas id="level-preview" width="140" height="100"
+                                style="border: 3px solid #00ff00; background: #000; border-radius: 6px;"></canvas>
+                            <div id="level-label"
+                                style="margin-top: 4px; color: #00ff00; font-family: 'Press Start 2P'; font-size: 10px;">
+                                LIVELLO 1</div>
+                        </div>
+                        <button id="next-level-btn" class="menu-arrow-btn"
+                            style="font-size: 20px; padding: 8px 12px;">▶</button>
+                    </div>
+
+                    <!-- XP Bar -->
+                    <div id="player-level-display"
+                        style="display: flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #1a1a2e, #16213e); padding: 5px 15px; border-radius: 20px; border: 2px solid #00ff88;">
+                        <span style="color: #ffd700; font-size: 16px;">⭐</span>
+                        <span id="player-level-text"
+                            style="color: #00ff88; font-size: 10px; font-family: 'Press Start 2P';">LV 1</span>
+                        <div style="width: 80px; height: 6px; background: #333; border-radius: 3px; overflow: hidden;">
+                            <div id="xp-progress-bar"
+                                style="width: 0%; height: 100%; background: linear-gradient(90deg, #00ff88, #00ffff);">
+                            </div>
+                        </div>
+                        <span id="xp-text" style="color: #888; font-size: 7px;">0/500</span>
+                    </div>
+
+                    <!-- Currency Display -->
+                    <div id="currency-display"
+                        style="display: flex; align-items: center; gap: 15px; background: linear-gradient(135deg, #1a1a2e, #2d1b4e); padding: 6px 15px; border-radius: 15px; border: 2px solid #ffd700; margin-top: 5px;">
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 14px;">🪙</span>
+                            <span id="menu-coins-display"
+                                style="color: #ffd700; font-size: 10px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 5px;">
+                            <span style="font-size: 14px;">🐲</span>
+                            <span id="menu-dragocoin-display"
+                                style="color: #ff00de; font-size: 10px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOTTOM: Buttons -->
+                <div
+                    style="display: flex; flex-direction: column; gap: 8px; width: 95%; max-width: 320px; padding: 0 10px; box-sizing: border-box;">
+                    <button id="start-btn" class="menu-btn"
+                        style="font-size: 16px; padding: 15px; background: linear-gradient(135deg, #00ff00, #00aa00); border-radius: 10px;">▶
+                        GIOCA</button>
+                    <button id="dragon-stats-btn" class="menu-btn"
+                        style="font-size: 11px; padding: 10px; background: linear-gradient(135deg, #ff00de, #aa00aa);">🐲
+                        DRAGHETTO</button>
+                    <button id="shop-btn" class="menu-btn" style="font-size: 11px; padding: 10px;">⬆️
+                        MIGLIORAMENTI</button>
+                    <button id="achievements-btn" class="menu-btn" style="font-size: 11px; padding: 10px;">🏆
+                        OBIETTIVI</button>
+                    <button id="leaderboard-btn" class="menu-btn" style="font-size: 11px; padding: 10px;">📊
+                        CLASSIFICA</button>
+                </div>
+
+                <!-- Auth Modal (hidden) -->
+                <div id="auth-modal"
+                    style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; z-index: 60;">
+                    <h2 style="color: #00ffff; font-family: 'Press Start 2P'; margin-bottom: 15px; font-size: 14px;">
+                        ACCOUNT</h2>
+                    <input type="email" id="auth-email" placeholder="Email"
+                        style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 8px; font-size: 10px; width: 220px;">
+                    <input type="password" id="auth-password" placeholder="Password"
+                        style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 8px; font-size: 10px; width: 220px;">
+                    <input type="password" id="auth-confirm-password" placeholder="Conferma"
+                        style="font-family: 'Press Start 2P'; margin-bottom: 10px; padding: 8px; font-size: 10px; width: 220px;">
+                    <div id="auth-status"
+                        style="color: red; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 10px; text-align: center; max-width: 240px; min-height: 16px;">
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+                        <button id="btn-login" class="menu-btn"
+                            style="font-size: 10px; padding: 8px 15px;">ACCEDI</button>
+                        <button id="btn-register" class="menu-btn"
+                            style="font-size: 10px; padding: 8px 15px;">REGISTRA</button>
+                    </div>
+                    <button id="btn-auth-cancel" class="menu-btn"
+                        style="background: #555; font-size: 10px; padding: 8px 15px;">ANNULLA</button>
+                </div>
+            </div>
+
+            <!-- Level Select Screen -->
+            <div id="level-select-screen"
+                style="display: none; flex-direction: column; align-items: center; width: 80%; height: 80%; background: #222; border: 4px solid #00ff00; padding: 20px; box-sizing: border-box;">
+                <h2 style="color: #00ff00; margin-bottom: 20px;">SELEZIONA LIVELLO</h2>
+                <div id="level-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 10px; width: 100%; max-height: 70%; overflow-y: auto; padding: 10px;">
+                    <!-- Buttons generated via JS -->
+                </div>
+                <button id="level-back-btn" class="menu-btn" style="margin-top: auto;">INDIETRO</button>
+            </div>
+
+            <div id="shop-screen"
+                style="display: none; flex-direction: column; align-items: center; width: 90%; height: 85%; background: #222; border: 4px solid #ff00de; padding: 15px; box-sizing: border-box;">
+                <h2 style="color: #ff00de; margin-bottom: 5px; font-size: 14px;">⬆️ NEGOZIO</h2>
+
+                <!-- Currency Display -->
+                <div style="display: flex; gap: 20px; margin-bottom: 10px;">
+                    <div id="shop-coin-display" style="color: #ffd700; font-size: 10px;">🪙 0</div>
+                    <div id="shop-dragocoin-display" style="color: #ff00de; font-size: 10px;">🐲 0</div>
+                </div>
+
+                <!-- Shop Tabs -->
+                <div style="display: flex; gap: 5px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center;">
+                    <button id="shop-tab-coins" class="shop-tab"
+                        style="padding: 6px 10px; font-size: 8px; font-family: 'Press Start 2P'; background: rgba(255,215,0,0.2); border: 2px solid #ffd700; color: #ffd700; border-radius: 8px; cursor: pointer;">
+                        🪙 MONETE
+                    </button>
+                    <button id="shop-tab-premium" class="shop-tab"
+                        style="padding: 6px 10px; font-size: 8px; font-family: 'Press Start 2P'; background: transparent; border: 2px solid #555; color: #888; border-radius: 8px; cursor: pointer;">
+                        🐲 PREMIUM
+                    </button>
+                    <button id="shop-tab-euro" class="shop-tab"
+                        style="padding: 6px 10px; font-size: 8px; font-family: 'Press Start 2P'; background: transparent; border: 2px solid #555; color: #888; border-radius: 8px; cursor: pointer;">
+                        💶 EURO
+                    </button>
+                </div>
+
+                <!-- COIN SHOP -->
+                <div id="shop-items-coins"
+                    style="display: flex; flex-direction: column; gap: 10px; width: 100%; overflow-y: auto; flex: 1;">
+                    <button class="shop-item" id="buy-long-range" data-item="long_range" data-cost="100"
+                        data-currency="coins">
+                        <span>🫧 BOLLE A LUNGA GITTATA</span>
+                        <span>🪙 100</span>
+                    </button>
+                    <button class="shop-item" id="buy-speed" data-item="speed_boost" data-cost="150"
+                        data-currency="coins">
+                        <span>🏃 VELOCITÀ +50%</span>
+                        <span>🪙 150</span>
+                    </button>
+                    <button class="shop-item" id="buy-double-jump" data-item="double_jump" data-cost="200"
+                        data-currency="coins">
+                        <span>🦘 DOPPIO SALTO</span>
+                        <span>🪙 200</span>
+                    </button>
+                    <button class="shop-item" id="buy-rapid-fire" data-item="rapid_fire" data-cost="250"
+                        data-currency="coins">
+                        <span>💨 FUOCO RAPIDO</span>
+                        <span>🪙 250</span>
+                    </button>
+                    <button class="shop-item" id="buy-shield" data-item="shield" data-cost="300" data-currency="coins">
+                        <span>🛡️ SCUDO PROTETTIVO</span>
+                        <span>🪙 300</span>
+                    </button>
+                </div>
+
+                <!-- PREMIUM DRAGOCOIN SHOP - HIGHER COSTS -->
+                <div id="shop-items-premium"
+                    style="display: none; flex-direction: column; gap: 8px; width: 100%; overflow-y: auto; flex: 1;">
+                    <div style="color: #ff00de; font-size: 7px; text-align: center; margin-bottom: 5px;">✨ Potenziamenti
+                        Permanenti Esclusivi ✨</div>
+
+                    <button class="shop-item premium" id="buy-mega-speed" data-item="mega_speed" data-cost="500"
+                        data-currency="dragocoin">
+                        <span>⚡ MEGA VELOCITÀ</span>
+                        <span style="color: #ff00de;">🐲 500</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">+100% Velocità permanente</p>
+
+                    <button class="shop-item premium" id="buy-super-jump" data-item="super_jump" data-cost="750"
+                        data-currency="dragocoin">
+                        <span>🚀 SUPER SALTO</span>
+                        <span style="color: #ff00de;">🐲 750</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">+100% Altezza salto</p>
+
+                    <button class="shop-item premium" id="buy-bubble-master" data-item="bubble_master" data-cost="1000"
+                        data-currency="dragocoin">
+                        <span>🫧 MAESTRO BOLLE</span>
+                        <span style="color: #ff00de;">🐲 1.000</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">Bolle 2x più grandi</p>
+
+                    <button class="shop-item premium" id="buy-coin-magnet" data-item="coin_magnet" data-cost="1250"
+                        data-currency="dragocoin">
+                        <span>🧲 MAGNETE MONETE</span>
+                        <span style="color: #ff00de;">🐲 1.250</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">Attira monete</p>
+
+                    <button class="shop-item premium" id="buy-xp-boost" data-item="xp_boost" data-cost="1500"
+                        data-currency="dragocoin">
+                        <span>⭐ BOOST XP</span>
+                        <span style="color: #ff00de;">🐲 1.500</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">+50% XP</p>
+
+                    <button class="shop-item premium" id="buy-triple-jump" data-item="triple_jump" data-cost="2000"
+                        data-currency="dragocoin">
+                        <span>🌟 TRIPLO SALTO</span>
+                        <span style="color: #ff00de;">🐲 2.000</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">3 salti in aria</p>
+
+                    <button class="shop-item premium" id="buy-immortal" data-item="immortal_start" data-cost="3000"
+                        data-currency="dragocoin">
+                        <span>💫 AVVIO IMMORTALE</span>
+                        <span style="color: #ff00de;">🐲 3.000</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">10s invincibilità</p>
+                </div>
+
+                <!-- EURO REAL MONEY SHOP -->
+                <div id="shop-items-euro"
+                    style="display: none; flex-direction: column; gap: 10px; width: 100%; overflow-y: auto; flex: 1;">
+                    <div
+                        style="color: #00ff00; font-size: 7px; text-align: center; margin-bottom: 5px; background: rgba(0,255,0,0.1); padding: 5px; border-radius: 5px;">
+                        💶 Acquisti con denaro reale
+                    </div>
+
+                    <div style="color: #ffd700; font-size: 8px; margin-top: 5px;">📦 Pacchetti Dragocoin</div>
+
+                    <button class="shop-item euro" id="buy-dragocoin-small" data-product="dragocoin_100">
+                        <span>🐲 100 Dragocoin</span>
+                        <span style="color: #00ff00;">€ 1,99</span>
+                    </button>
+
+                    <button class="shop-item euro" id="buy-dragocoin-medium" data-product="dragocoin_500">
+                        <span>🐲 500 Dragocoin</span>
+                        <span style="color: #00ff00;">€ 7,99</span>
+                    </button>
+                    <p style="color: #ffd700; font-size: 6px; margin: -3px 0 3px 10px;">🔥 +20% bonus</p>
+
+                    <button class="shop-item euro" id="buy-dragocoin-large" data-product="dragocoin_1500">
+                        <span>🐲 1.500 Dragocoin</span>
+                        <span style="color: #00ff00;">€ 19,99</span>
+                    </button>
+                    <p style="color: #ffd700; font-size: 6px; margin: -3px 0 3px 10px;">🔥 +50% bonus</p>
+
+                    <button class="shop-item euro" id="buy-dragocoin-huge" data-product="dragocoin_5000">
+                        <span>🐲 5.000 Dragocoin</span>
+                        <span style="color: #00ff00;">€ 49,99</span>
+                    </button>
+                    <p style="color: #ffd700; font-size: 6px; margin: -3px 0 3px 10px;">🔥🔥 +100% bonus</p>
+
+                    <div style="color: #ff00de; font-size: 8px; margin-top: 10px;">⭐ Offerte Speciali</div>
+
+                    <button class="shop-item euro" id="buy-remove-ads" data-product="remove_ads"
+                        style="background: rgba(0,200,0,0.2); border: 2px solid #00cc00;">
+                        <span>🚫 RIMUOVI PUBBLICITÀ</span>
+                        <span style="color: #00ff00; font-weight: bold;">€ 4,99</span>
+                    </button>
+                    <p style="color: #888; font-size: 6px; margin: -3px 0 3px 10px;">Niente più ads tra i livelli!</p>
+
+                    <button class="shop-item euro unlock-all" id="buy-unlock-all" data-product="unlock_all"
+                        style="background: linear-gradient(135deg, #ff00de, #ffd700); border: 3px solid #fff;">
+                        <span style="color: #fff;">👑 SBLOCCA TUTTO</span>
+                        <span style="color: #fff; font-weight: bold;">€ 99,99</span>
+                    </button>
+                    <p style="color: #ffd700; font-size: 6px; margin: -3px 0 3px 10px;">Tutti i potenziamenti + 10.000🐲
+                        + VIP + No Ads</p>
+
+                    <div style="color: #888; font-size: 6px; text-align: center; margin-top: 10px; padding: 5px;">
+                        ⚠️ Gli acquisti saranno disponibili dopo la pubblicazione su App Store
+                    </div>
+                </div>
+
+                <button id="back-btn" class="menu-btn" style="margin-top: 10px; flex-shrink: 0;">INDIETRO</button>
+            </div>
+
+            <!-- Achievements Screen -->
+            <div id="achievements-screen"
+                style="display: none; flex-direction: column; align-items: center; width: 90%; height: 85%; background: #222; border: 4px solid #ffd700; padding: 15px; box-sizing: border-box;">
+                <h2 style="color: #ffd700; margin-bottom: 5px; font-size: 14px;">🏆 OBIETTIVI</h2>
+                <div id="achievements-progress" style="color: #aaa; font-size: 10px; margin-bottom: 10px;">
+                    Progresso: 0% | Punti: 0
+                </div>
+
+                <!-- Category Tabs -->
+                <div id="achievements-tabs"
+                    style="display: flex; gap: 5px; width: 100%; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; flex-shrink: 0;">
+                    <!-- Tabs populated by JS -->
+                </div>
+
+                <!-- Category Title -->
+                <div id="current-category-title"
+                    style="color: #ffd700; font-size: 12px; margin-bottom: 8px; text-align: center;">
+                    Seleziona una categoria
+                </div>
+
+                <!-- Achievements List for Selected Category -->
+                <div id="achievements-list"
+                    style="display: flex; flex-direction: column; gap: 8px; width: 100%; overflow-y: auto; flex: 1;">
+                    <!-- Achievements populated by JS -->
+                </div>
+
+                <button id="achievements-back-btn" class="menu-btn"
+                    style="margin-top: 10px; font-size: 11px; flex-shrink: 0;">INDIETRO</button>
+            </div>
+
+            <!-- Leaderboard Screen -->
+            <div id="leaderboard-screen"
+                style="display: none; flex-direction: column; align-items: center; width: 90%; height: 85%; background: #222; border: 4px solid #00ffff; padding: 20px; box-sizing: border-box;">
+                <h2 style="color: #00ffff; margin-bottom: 10px;">🏆 CLASSIFICA</h2>
+                <div id="user-rank" style="color: #aaa; font-size: 11px; margin-bottom: 15px;">
+                    La tua posizione: --
+                </div>
+                <div id="leaderboard-list"
+                    style="display: flex; flex-direction: column; gap: 8px; width: 100%; overflow-y: auto; flex: 1;">
+                    <div class="leaderboard-loading">Caricamento...</div>
+                </div>
+                <button id="leaderboard-back-btn" class="menu-btn"
+                    style="margin-top: 15px; font-size: 12px;">INDIETRO</button>
+            </div>
+
+            <!-- Dragon Stats Screen -->
+            <div id="dragon-stats-screen"
+                style="display: none; flex-direction: column; align-items: center; width: 90%; height: 85%; background: linear-gradient(135deg, #1a0030, #2d1b4e); border: 4px solid #ff00de; padding: 20px; box-sizing: border-box; overflow-y: auto;">
+                <h2 style="color: #ff00de; margin-bottom: 5px; font-size: 16px;">🐲 IL TUO DRAGHETTO</h2>
+
+                <!-- Dragon Level Display -->
+                <div style="display: flex; flex-direction: column; align-items: center; margin-bottom: 15px;">
+                    <div style="font-size: 48px; margin-bottom: 5px;">🐲</div>
+                    <div id="dragon-level-display"
+                        style="color: #00ff88; font-size: 20px; font-family: 'Press Start 2P';">LIVELLO 1</div>
+                </div>
+
+                <!-- XP Progress Bar -->
+                <div style="width: 100%; max-width: 280px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span style="color: #aaa; font-size: 8px;">ESPERIENZA</span>
+                        <span id="dragon-xp-text" style="color: #00ff88; font-size: 8px;">0 / 500 XP</span>
+                    </div>
+                    <div
+                        style="width: 100%; height: 15px; background: #333; border-radius: 8px; overflow: hidden; border: 2px solid #00ff88;">
+                        <div id="dragon-xp-bar"
+                            style="width: 0%; height: 100%; background: linear-gradient(90deg, #00ff88, #00ffff); transition: width 0.3s;">
+                        </div>
+                    </div>
+                    <div id="dragon-xp-to-next"
+                        style="color: #888; font-size: 7px; text-align: center; margin-top: 3px;">Prossimo livello: 500
+                        XP</div>
+                </div>
+
+                <!-- Bonuses Breakdown -->
+                <div
+                    style="width: 100%; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; margin-bottom: 15px;">
+                    <h3 style="color: #ffd700; font-size: 10px; margin-bottom: 10px; text-align: center;">✨ BONUS ATTIVI
+                    </h3>
+                    <div id="dragon-bonuses-list" style="display: flex; flex-direction: column; gap: 8px;">
+                        <div class="bonus-row"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #fff; font-size: 8px;">🏃 Velocità</span>
+                            <span id="bonus-speed" style="color: #00ff88; font-size: 8px;">+0.0%</span>
+                        </div>
+                        <div class="bonus-row"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #fff; font-size: 8px;">🦘 Salto</span>
+                            <span id="bonus-jump" style="color: #00ff88; font-size: 8px;">+0.0%</span>
+                        </div>
+                        <div class="bonus-row"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #fff; font-size: 8px;">🫧 Gittata Bolle</span>
+                            <span id="bonus-range" style="color: #00ff88; font-size: 8px;">+0.0%</span>
+                        </div>
+                        <div class="bonus-row"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #fff; font-size: 8px;">⏱️ Durata Bolle</span>
+                            <span id="bonus-duration" style="color: #00ff88; font-size: 8px;">+0.0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Next Bonus Preview -->
+                <div
+                    style="width: 100%; background: rgba(255,215,0,0.1); border-radius: 10px; padding: 10px; margin-bottom: 15px; border: 1px solid #ffd700;">
+                    <div style="color: #ffd700; font-size: 8px; text-align: center; margin-bottom: 5px;">🎁 PROSSIMO
+                        BONUS (Lv <span id="next-bonus-level">2</span>)</div>
+                    <div id="next-bonus-name" style="color: #fff; font-size: 10px; text-align: center;">🏃 Velocità
+                        +0.1%</div>
+                </div>
+
+                <!-- XP Boost with Dragocoin -->
+                <div
+                    style="width: 100%; background: linear-gradient(135deg, #2d1b4e, #1a1a3e); border-radius: 10px; padding: 15px; border: 2px solid #ff00de;">
+                    <h3 style="color: #ff00de; font-size: 10px; margin-bottom: 10px; text-align: center;">⚡ POTENZIA CON
+                        DRAGOCOIN</h3>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span style="color: #fff; font-size: 8px;">I tuoi Dragocoin:</span>
+                        <span id="dragon-stats-dragocoin"
+                            style="color: #ff00de; font-size: 10px; font-family: 'Press Start 2P';">🐲 0</span>
+                    </div>
+                    <button id="boost-xp-btn" class="menu-btn"
+                        style="width: 100%; font-size: 9px; padding: 10px; background: linear-gradient(135deg, #ff00de, #aa00aa);">
+                        🐲 10 → +500 XP
+                    </button>
+                    <div id="boost-status" style="color: #888; font-size: 7px; text-align: center; margin-top: 5px;">
+                    </div>
+                </div>
+
+                <!-- Game Statistics Section -->
+                <div
+                    style="width: 100%; background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px; margin-bottom: 15px; margin-top: 15px;">
+                    <h3 style="color: #00ffff; font-size: 10px; margin-bottom: 10px; text-align: center;">📊 STATISTICHE
+                        DI GIOCO</h3>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">👾 Nemici Catturati</span>
+                            <span id="stat-enemies"
+                                style="color: #ff6b6b; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">🪙 Monete Totali</span>
+                            <span id="stat-coins"
+                                style="color: #ffd700; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">🎮 Partite Giocate</span>
+                            <span id="stat-games"
+                                style="color: #00ff88; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">✅ Livelli Completati</span>
+                            <span id="stat-levels"
+                                style="color: #00ffff; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">⚡ Powerup Raccolti</span>
+                            <span id="stat-powerups"
+                                style="color: #ff00de; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px;">
+                            <span style="color: #aaa; font-size: 7px;">💀 Morti Totali</span>
+                            <span id="stat-deaths"
+                                style="color: #888; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 8px; border-radius: 5px; grid-column: 1 / -1;">
+                            <span style="color: #aaa; font-size: 7px;">🍎 Frutta Raccolta</span>
+                            <span id="stat-fruit"
+                                style="color: #ff8800; font-size: 9px; font-family: 'Press Start 2P';">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="dragon-stats-back-btn" class="menu-btn"
+                    style="margin-top: 15px; font-size: 12px;">INDIETRO</button>
+            </div>
+        </div>
+
+        <!-- Achievement Toast Notification -->
+        <div id="achievement-toast"
+            style="position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #ffd700, #ff8c00); padding: 15px 25px; border-radius: 10px; display: flex; align-items: center; gap: 15px; z-index: 100; opacity: 0; transition: opacity 0.3s, transform 0.3s; pointer-events: none;">
+        </div>
+
+        <div id="name-change-modal"
+            style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; justify-content: center; align-items: center; z-index: 50;">
+            <h2 style="color: #00ffff; font-family: 'Press Start 2P'; margin-bottom: 20px;">CAMBIA NOME</h2>
+            <input type="text" id="username-input" maxlength="12" placeholder="Nuovo Nome"
+                style="font-family: 'Press Start 2P'; margin-bottom: 20px; padding: 10px; font-size: 16px; text-transform: uppercase;">
+            <div id="username-status"
+                style="color: red; font-family: 'Press Start 2P'; font-size: 10px; margin-bottom: 20px; height: 20px;">
+            </div>
+            <div style="display: flex; gap: 20px;">
+                <button id="cancel-name-btn" class="menu-btn"
+                    style="background: #555; font-size: 12px;">ANNULLA</button>
+                <button id="confirm-name-btn" class="menu-btn" style="font-size: 12px;">CONFERMA</button>
+            </div>
+        </div>
+
+        <!-- Daily Reward Modal -->
+        <div id="daily-reward-modal"
+            style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; z-index: 70; pointer-events: auto;">
+            <div
+                style="background: linear-gradient(135deg, #1a1a3e, #2d1b4e); border: 4px solid #ffd700; border-radius: 20px; padding: 25px; max-width: 320px; text-align: center;">
+                <h2 style="color: #ffd700; font-family: 'Press Start 2P'; margin-bottom: 15px; font-size: 14px;">🎁
+                    PREMIO GIORNALIERO</h2>
+
+                <div id="daily-streak-display"
+                    style="color: #ff8c00; font-family: 'Press Start 2P'; font-size: 10px; margin-bottom: 20px;">
+                    🔥 Serie: <span id="streak-count">1</span> giorni
+                </div>
+
+                <div id="daily-reward-content"
+                    style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px;">
+                    <div id="reward-coins"
+                        style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #ffd700; font-family: 'Press Start 2P'; font-size: 12px;">
+                        <span>🪙</span>
+                        <span id="reward-coins-value">+50</span>
+                        <span style="font-size: 8px; color: #aaa;">MONETE</span>
+                    </div>
+                    <div id="reward-xp"
+                        style="display: flex; align-items: center; justify-content: center; gap: 10px; color: #00ff88; font-family: 'Press Start 2P'; font-size: 12px;">
+                        <span>⭐</span>
+                        <span id="reward-xp-value">+25</span>
+                        <span style="font-size: 8px; color: #aaa;">XP</span>
+                    </div>
+                    <div id="reward-dragocoin"
+                        style="display: none; align-items: center; justify-content: center; gap: 10px; color: #ff00de; font-family: 'Press Start 2P'; font-size: 12px;">
+                        <span>🐲</span>
+                        <span id="reward-dragocoin-value">+1</span>
+                        <span style="font-size: 8px; color: #aaa;">DRAGOCOIN</span>
+                    </div>
+                </div>
+
+                <button id="claim-daily-reward-btn" class="menu-btn"
+                    style="font-size: 12px; padding: 12px 30px; background: linear-gradient(135deg, #ffd700, #ff8c00); animation: pulse 1.5s infinite;">
+                    RISCUOTI 🎁
+                </button>
+            </div>
+        </div>
+
+        <div id="game-over-screen"
+            style="display: none; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; background: rgba(0, 0, 0, 0.9); width: 100%; height: 100%; z-index: 30; pointer-events: auto;">
+            <h1
+                style="color: red; font-size: 48px; margin-bottom: 20px; text-shadow: 2px 2px white; font-family: 'Press Start 2P', cursive;">
+                FINE PARTITA</h1>
+            <p style="color: white; font-size: 20px; margin-bottom: 10px; font-family: 'Press Start 2P', cursive;">
+                MONETE RACCOLTE:</p>
+            <p id="session-coins"
+                style="color: yellow; font-size: 32px; margin-bottom: 40px; font-family: 'Press Start 2P', cursive;">
+                0</p>
+            <button id="return-menu-btn" class="menu-btn">MENU PRINCIPALE</button>
+        </div>
+        <div id="pause-screen"
+            style="display: none; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; background: rgba(0, 0, 0, 0.85); width: 100%; height: 100%; z-index: 40; pointer-events: auto;">
+            <h2
+                style="color: #ff00de; font-size: 36px; margin-bottom: 40px; font-family: 'Press Start 2P'; text-shadow: 2px 2px #fff;">
+                PAUSA</h2>
+            <button id="resume-btn" class="menu-btn">RIPRENDI</button>
+            <button id="restart-btn" class="menu-btn">RICOMINCIA</button>
+            <button id="quit-btn" class="menu-btn">ESCI</button>
+        </div>
+
+        <div id="touch-controls">
+            <div id="movement-buttons">
+                <button id="btn-left" class="touch-btn arrow-btn">◀</button>
+                <button id="btn-right" class="touch-btn arrow-btn">▶</button>
+            </div>
+            <div id="actions">
+                <button id="btn-shoot" class="touch-btn">B</button>
+                <button id="btn-jump" class="touch-btn">A</button>
+            </div>
+        </div>
+
+        <!-- Pause Button (Global UI) -->
+        <button id="hud-pause-btn"
+            style="position: absolute; top: calc(env(safe-area-inset-top, 20px) + 50px); left: env(safe-area-inset-left, 20px); width: 40px; height: 40px; border-radius: 50%; background: #333; border: 2px solid white; color: white; display: none; justify-content: center; align-items: center; font-family: 'Press Start 2P'; font-size: 10px; pointer-events: auto; z-index: 50; opacity: 0.7;">
+            ||
+        </button>
+    </div>
+    <script type="module" src="js/main.js"></script>
+</body>
+
+</html>

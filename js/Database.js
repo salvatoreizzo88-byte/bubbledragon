@@ -1,0 +1,561 @@
+import firebaseConfig from './FirebaseConfig.js';
+// We assume Firebase SDK is loaded via CDN in index.html, exposing 'firebase' global
+// Typically: firebase.initializeApp(firebaseConfig);
+// But with modules, it's better to use imports if we had a bundler. 
+// Since we are using native ES modules without a bundler for dependencies, we'll rely on global 'firebase' object from CDN.
+
+let db = null;
+
+export default class Database {
+    static init() {
+        if (!window.firebase) {
+            console.error("Firebase SDK not loaded!");
+            return;
+        }
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        db = firebase.firestore();
+        this.auth = firebase.auth();
+    }
+
+    // --- AUTHENTICATION METHODS ---
+
+    static async registerWithEmail(email, password, username, initialData = {}) {
+        if (!this.auth) return { success: false, error: "Auth not initialized" };
+
+        try {
+            // 1. Create Auth User
+            const userCredential = await this.auth.createUserWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // 2. Update Profile with Username
+            await user.updateProfile({
+                displayName: username
+            });
+
+            // 3. Save Data to Firestore under UID
+            // We use UID as the document key for secure authenticated users
+            await db.collection("users").doc(user.uid).set({
+                username: username,
+                email: email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                ...initialData
+            });
+
+            return { success: true, user: user };
+        } catch (error) {
+            console.error("Registration Error:", error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    static async loginWithEmail(email, password) {
+        if (!this.auth) return { success: false, error: "Auth not initialized" };
+
+        try {
+            const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
+            const user = userCredential.user;
+
+            // Fetch User Data
+            const doc = await db.collection("users").doc(user.uid).get();
+            let userData = null;
+            if (doc.exists) {
+                userData = doc.data();
+            }
+
+            return { success: true, user: user, data: userData };
+        } catch (error) {
+            console.error("Login Error:", error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    static async logout() {
+        if (!this.auth) return;
+        await this.auth.signOut();
+    }
+
+    // --- FIRESTORE METHODS ---
+
+    static checkAvailability(username) {
+        return new Promise(async (resolve) => {
+            // Basic validation
+            if (!username) {
+                resolve({ available: false, error: "Username cannot be empty." });
+                return;
+            }
+            const lower = username.toLowerCase();
+            if (lower.length < 3) {
+                resolve({ available: false, error: "Too short (min 3 chars)." });
+                return;
+            }
+            const forbidden = ['admin', 'root', 'system', 'null', 'undefined'];
+            if (forbidden.includes(lower)) {
+                resolve({ available: false, error: "Username not allowed." });
+                return;
+            }
+
+            if (!db) {
+                console.warn("Database not initialized, falling back to mock");
+                resolve({ available: true }); // Fallback if DB fails
+                return;
+            }
+
+            try {
+                // Check if username exists in 'users' collection
+                // NOTE: With Auth, we might have users keyed by UID. 
+                // To check availability globally, we'd need a separate 'usernames' collection or query.
+                // For now, we unfortunately stick to the old check which only checks the 'users/{username}' docs.
+                // This is imperfect for Auth users stored under UID unless we also reserve the username doc.
+                // Mitigation: We will ALSO try to reserve the username document ID even for Auth users
+                // OR we query for the field 'username'.
+
+                // Query by field 'username'
+                const snapshot = await db.collection("users").where("username", "==", username).get();
+                if (!snapshot.empty) {
+                    resolve({ available: false, error: "Username already taken." });
+                    return;
+                }
+
+                // Legacy check (if using username as doc ID)
+                const docRef = db.collection("users").doc(lower);
+                const doc = await docRef.get();
+
+                if (doc.exists) {
+                    resolve({ available: false, error: "Username already taken." });
+                } else {
+                    resolve({ available: true });
+                }
+            } catch (error) {
+                console.error("Error checking username:", error);
+                resolve({ available: false, error: "Network error." });
+            }
+        });
+    }
+
+    static async registerUser(username, data = {}) {
+        // LEGACY / GUEST / UN-AUTHED NAMED USERS
+        if (!db) return;
+        const lower = username.toLowerCase();
+        try {
+            await db.collection("users").doc(lower).set({
+                originalName: username,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                ...data
+            });
+            return true;
+        } catch (error) {
+            console.error("Error registering user:", error);
+            return false;
+        }
+    }
+
+    static async saveProgress(identifier, gameState) {
+        // identifier can be 'username' (legacy) OR 'uid' (auth)
+        // We detect which one it is mostly by context, but here we just take a string.
+        // If we want to support both, we should probably check if it matches a UID format 
+        // OR rely on the caller to request the correct doc path.
+        // For simplicity: We will assume the caller handles the logic. 
+        // BUT, since we have mixed data models, let's be smart.
+        // If Database.auth.currentUser is set and matches identifier, use UID doc.
+
+        if (!db || !identifier) return;
+
+        let docId = identifier;
+
+        // If logged in, prefer saving to UID
+        if (this.auth && this.auth.currentUser) {
+            // If the passed identifier matches the username of the logged in user, SAVE TO UID!
+            // Or if we change GameState to track UID.
+            // Strategy: The callee (GameState) tracks a 'storageKey'. 
+            // If we are logged in, we should save to users/{uid}.
+            // Let's rely on GameState passing the right ID? 
+            // No, GameState uses 'bubbleBobbleSave_USERNAME'.
+            // To support Auth without rewriting GameState completely, we can check here.
+
+            if (this.auth.currentUser.uid === identifier) {
+                // It's a UID
+                docId = identifier;
+            } else if (this.auth.currentUser.displayName === identifier) {
+                // It's the username, but we are authed. Save to UID indeed!
+                docId = this.auth.currentUser.uid;
+            }
+        }
+
+        // If it's a legacy username, it will just use it as Doc ID (e.g. 'mario').
+        // If it's a UID, it will use the UID string.
+        // A UID is usually long alpha-numeric. A username is usually shorter/different.
+        // The safest approach is: If we are authed, save to UID.
+
+        const lower = docId.toLowerCase(); // Careful, UIDs are case sensitive! 
+        // If we are saving to UID, DO NOT LOWERCASE.
+
+        let targetDoc;
+        if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
+            targetDoc = db.collection("users").doc(docId); // Exact UID
+        } else if (this.auth && this.auth.currentUser && this.auth.currentUser.displayName === identifier) {
+            targetDoc = db.collection("users").doc(this.auth.currentUser.uid); // Redirect to UID
+        } else {
+            targetDoc = db.collection("users").doc(docId.toLowerCase()); // Legacy behavior
+        }
+
+        try {
+            // Converti stats in italiano
+            const statistiche = {
+                nemiciCatturati: gameState.stats.enemiesTrapped || 0,
+                partiteGiocate: gameState.stats.gamesPlayed || 0,
+                livelliCompletati: gameState.stats.levelsCompleted || 0,
+                powerupRaccolti: gameState.stats.powerupsCollected || 0,
+                moneteGuadagnate: gameState.stats.totalCoinsEarned || 0,
+                mortiTotali: gameState.stats.totalDeaths || 0,
+                frutteRaccolte: gameState.stats.totalFruitCollected || 0
+            };
+
+            await targetDoc.update({
+                monete: gameState.coins,
+                dragocoin: gameState.dragocoin || 0,
+                inventario: gameState.inventory,
+                statistiche: statistiche,
+                livelloMax: gameState.maxLevel || 1,
+                livelloGiocatore: gameState.playerLevel || 1,
+                puntiXP: gameState.playerXP || 0,
+                ultimoLogin: gameState.lastLoginDate || null,
+                serieAccessi: gameState.loginStreak || 0,
+                obiettiviSbloccati: gameState.unlockedAchievements || [],
+                ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) {
+            console.error("Errore salvataggio progressi:", error);
+            try {
+                // Determine username for the field
+                let nameToSave = identifier;
+                if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
+                    nameToSave = this.auth.currentUser.displayName || "Unknown";
+                }
+
+                // Converti stats in italiano
+                const statistiche = {
+                    nemiciCatturati: gameState.stats.enemiesTrapped || 0,
+                    partiteGiocate: gameState.stats.gamesPlayed || 0,
+                    livelliCompletati: gameState.stats.levelsCompleted || 0,
+                    powerupRaccolti: gameState.stats.powerupsCollected || 0,
+                    moneteGuadagnate: gameState.stats.totalCoinsEarned || 0,
+                    mortiTotali: gameState.stats.totalDeaths || 0,
+                    frutteRaccolte: gameState.stats.totalFruitCollected || 0
+                };
+
+                await targetDoc.set({
+                    nomeUtente: nameToSave,
+                    monete: gameState.coins,
+                    dragocoin: gameState.dragocoin || 0,
+                    inventario: gameState.inventory,
+                    statistiche: statistiche,
+                    livelloMax: gameState.maxLevel || 1,
+                    livelloGiocatore: gameState.playerLevel || 1,
+                    puntiXP: gameState.playerXP || 0,
+                    ultimoLogin: gameState.lastLoginDate || null,
+                    serieAccessi: gameState.loginStreak || 0,
+                    obiettiviSbloccati: gameState.unlockedAchievements || [],
+                    ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+            } catch (innerError) {
+                console.error("Tentativo salvataggio fallito:", innerError);
+            }
+        }
+    }
+
+    static async loadProgress(identifier) {
+        if (!db || !identifier) return null;
+
+        // Similar logic for load
+        let targetDoc;
+        if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === identifier) {
+            targetDoc = db.collection("users").doc(identifier);
+        } else if (this.auth && this.auth.currentUser && this.auth.currentUser.displayName === identifier) {
+            targetDoc = db.collection("users").doc(this.auth.currentUser.uid);
+        } else {
+            targetDoc = db.collection("users").doc(identifier.toLowerCase());
+        }
+
+        try {
+            const doc = await targetDoc.get();
+            if (doc.exists) {
+                const data = doc.data();
+
+                // Converti campi italiani -> inglesi per compatibilità interna
+                // Supporta sia vecchi che nuovi nomi campi
+                const statsIt = data.statistiche || {};
+
+                return {
+                    username: data.nomeUtente || data.username,
+                    coins: data.monete !== undefined ? data.monete : data.coins || 0,
+                    dragocoin: data.dragocoin || 0,
+                    inventory: data.inventario || data.inventory || [],
+                    maxLevel: data.livelloMax || data.maxLevel || 1,
+                    playerLevel: data.livelloGiocatore || data.playerLevel || 1,
+                    playerXP: data.puntiXP || data.playerXP || 0,
+                    lastLoginDate: data.ultimoLogin || null,
+                    loginStreak: data.serieAccessi || 0,
+                    unlockedAchievements: data.obiettiviSbloccati || [],
+                    stats: {
+                        enemiesTrapped: statsIt.nemiciCatturati || (data.stats?.enemiesTrapped) || 0,
+                        gamesPlayed: statsIt.partiteGiocate || (data.stats?.gamesPlayed) || 0,
+                        levelsCompleted: statsIt.livelliCompletati || (data.stats?.levelsCompleted) || 0,
+                        powerupsCollected: statsIt.powerupRaccolti || (data.stats?.powerupsCollected) || 0,
+                        totalCoinsEarned: statsIt.moneteGuadagnate || (data.stats?.totalCoinsEarned) || 0,
+                        totalDeaths: statsIt.mortiTotali || (data.stats?.totalDeaths) || 0,
+                        totalFruitCollected: statsIt.frutteRaccolte || (data.stats?.totalFruitCollected) || 0
+                    }
+                };
+            }
+        } catch (error) {
+            console.error("Errore caricamento progressi:", error);
+        }
+        return null;
+    }
+
+    static async deleteUser(username) {
+        if (!db || !username) return;
+        const lower = username.toLowerCase();
+        try {
+            await db.collection("users").doc(lower).delete();
+            console.log(`Utente ${username} eliminato dal DB.`);
+        } catch (error) {
+            console.error("Error deleting user:", error);
+        }
+    }
+
+    // === LEADERBOARD METHODS ===
+
+    static async submitScore(username, score, maxLevel) {
+        if (!db) {
+            console.error('Database non inizializzato per classifica');
+            return;
+        }
+        if (!username) {
+            console.error('Nessun username fornito per classifica');
+            return;
+        }
+
+        try {
+            console.log('Invio punteggio a Firebase...', { username, score, maxLevel });
+            const docRef = db.collection("leaderboard").doc(username.toLowerCase());
+            const existing = await docRef.get();
+
+            // Only update if new level is higher
+            if (existing.exists) {
+                const data = existing.data();
+                const existingLevel = data.livelloDraghetto || data.livello || 1;
+                if (existingLevel >= score) {
+                    console.log("Livello esistente più alto, non aggiorno");
+                    return;
+                }
+            }
+
+            await docRef.set({
+                nomeUtente: username,
+                livelloDraghetto: score, // Now stores dragon level, not XP
+                livelloMax: maxLevel,
+                aggiornatoIl: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            console.log(`Classifica aggiornata: ${username} - Livello ${score}`);
+        } catch (error) {
+            console.error("Errore invio punteggio:", error.message, error);
+        }
+    }
+
+    static async getTopScores(limit = 10) {
+        if (!db) return [];
+
+        try {
+            const snapshot = await db.collection("leaderboard")
+                .orderBy("livelloDraghetto", "desc")
+                .limit(limit)
+                .get();
+
+            const scores = [];
+            snapshot.forEach(doc => {
+                const data = doc.data();
+                scores.push({
+                    id: doc.id,
+                    username: data.nomeUtente || data.username,
+                    dragonLevel: data.livelloDraghetto || data.livello || 1,
+                    maxLevel: data.livelloMax || data.maxLevel || 1
+                });
+            });
+
+            return scores;
+        } catch (error) {
+            console.error("Errore caricamento classifica:", error);
+            return [];
+        }
+    }
+
+    static async getUserRank(username) {
+        if (!db || !username) return null;
+
+        try {
+            // Get user's dragon level first
+            const userDoc = await db.collection("leaderboard").doc(username.toLowerCase()).get();
+            if (!userDoc.exists) return null;
+
+            const data = userDoc.data();
+            const userLevel = data.livelloDraghetto || data.livello || 1;
+
+            // Count how many have higher level
+            const higherSnapshot = await db.collection("leaderboard")
+                .where("livelloDraghetto", ">", userLevel)
+                .get();
+
+            return higherSnapshot.size + 1; // Rank is 1-indexed
+        } catch (error) {
+            console.error("Error getting user rank:", error);
+            return null;
+        }
+    }
+
+    // Migrate existing users to leaderboard
+    static async migrateUsersToLeaderboard() {
+        if (!db) {
+            console.error('Database not initialized');
+            return;
+        }
+
+        try {
+            console.log('Starting migration of users to leaderboard...');
+            const usersSnapshot = await db.collection("users").get();
+
+            let migrated = 0;
+            for (const doc of usersSnapshot.docs) {
+                const userData = doc.data();
+                const username = userData.username || doc.id;
+                const score = userData.coins || 0;
+                const maxLevel = userData.maxLevel || 1;
+
+                // Only add if has some score
+                if (score > 0 || maxLevel > 1) {
+                    await db.collection("leaderboard").doc(username.toLowerCase()).set({
+                        username: username,
+                        score: score,
+                        maxLevel: maxLevel,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log(`Migrated: ${username} - Score: ${score}, Level: ${maxLevel}`);
+                    migrated++;
+                }
+            }
+
+            console.log(`Migration complete! ${migrated} users added to leaderboard.`);
+            return migrated;
+        } catch (error) {
+            console.error("Error migrating users:", error);
+            return 0;
+        }
+    }
+
+    // DEVELOPMENT ONLY: Clear ALL data from database
+    static async clearAllData() {
+        if (!db) {
+            console.error('Database non inizializzato');
+            return;
+        }
+
+        try {
+            console.log('⚠️ CANCELLAZIONE COMPLETA DATABASE...');
+
+            // Cancella tutti gli utenti
+            const usersSnapshot = await db.collection("users").get();
+            const usersBatch = db.batch();
+            usersSnapshot.forEach(doc => {
+                usersBatch.delete(doc.ref);
+            });
+            await usersBatch.commit();
+            console.log(`Cancellati ${usersSnapshot.size} utenti.`);
+
+            // Cancella la classifica
+            const leaderboardSnapshot = await db.collection("leaderboard").get();
+            const leaderboardBatch = db.batch();
+            leaderboardSnapshot.forEach(doc => {
+                leaderboardBatch.delete(doc.ref);
+            });
+            await leaderboardBatch.commit();
+            console.log(`Cancellate ${leaderboardSnapshot.size} voci classifica.`);
+
+            console.log('✅ DATABASE COMPLETAMENTE CANCELLATO!');
+            return true;
+        } catch (error) {
+            console.error("Errore cancellazione database:", error);
+            return false;
+        }
+    }
+
+    // Clear all leaderboard entries
+    static async clearLeaderboard() {
+        if (!db) {
+            console.error('Database non inizializzato');
+            return;
+        }
+
+        try {
+            console.log('Pulizia classifica...');
+            const snapshot = await db.collection("leaderboard").get();
+
+            const batch = db.batch();
+            snapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            await batch.commit();
+            console.log(`Rimosse ${snapshot.size} voci dalla classifica.`);
+            return snapshot.size;
+        } catch (error) {
+            console.error("Errore pulizia classifica:", error);
+            return 0;
+        }
+    }
+
+    // Rebuild leaderboard from users collection with playerLevel
+    static async rebuildLeaderboard() {
+        if (!db) {
+            console.error('Database non inizializzato');
+            return;
+        }
+
+        try {
+            // First clear the old leaderboard
+            await this.clearLeaderboard();
+
+            console.log('Ricostruzione classifica dagli utenti...');
+            const usersSnapshot = await db.collection("users").get();
+
+            let added = 0;
+            for (const doc of usersSnapshot.docs) {
+                const userData = doc.data();
+                // Supporta sia vecchi che nuovi nomi campi
+                const username = userData.nomeUtente || userData.username || doc.id;
+                const playerLevel = userData.livelloGiocatore || userData.playerLevel || 1;
+                const playerXP = userData.puntiXP || userData.playerXP || 0;
+
+                // Only add users with some progress
+                if (playerLevel > 1 || playerXP > 0) {
+                    await db.collection("leaderboard").doc(username.toLowerCase()).set({
+                        nomeUtente: username,
+                        livelloDraghetto: playerLevel,
+                        livelloMax: userData.livelloMax || userData.maxLevel || 1,
+                        aggiornatoIl: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    console.log(`Aggiunto: ${username} - Livello Draghetto: ${playerLevel}`);
+                    added++;
+                }
+            }
+
+            console.log(`Classifica ricostruita! ${added} utenti aggiunti.`);
+            return added;
+        } catch (error) {
+            console.error("Errore ricostruzione classifica:", error);
+            return 0;
+        }
+    }
+}
