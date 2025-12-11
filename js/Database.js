@@ -174,53 +174,98 @@ export default class Database {
         }
     }
 
-    static async saveProgress(identifier, gameState) {
-        // identifier can be 'username' (legacy) OR 'uid' (auth)
-        // We detect which one it is mostly by context, but here we just take a string.
-        // If we want to support both, we should probably check if it matches a UID format 
-        // OR rely on the caller to request the correct doc path.
-        // For simplicity: We will assume the caller handles the logic. 
-        // BUT, since we have mixed data models, let's be smart.
-        // If Database.auth.currentUser is set and matches identifier, use UID doc.
+    // === ANTI-CHEAT VALIDATION ===
+    static validateGameState(gameState, existingData = null) {
+        const errors = [];
 
+        // 1. No negative values
+        if (gameState.coins < 0) errors.push("coins_negative");
+        if (gameState.dragocoin < 0) errors.push("dragocoin_negative");
+        if (gameState.playerXP < 0) errors.push("xp_negative");
+        if (gameState.playerLevel < 1) errors.push("level_invalid");
+        if (gameState.maxLevel < 1) errors.push("maxLevel_invalid");
+
+        // 2. Level must be consistent with XP (500 XP per level)
+        const expectedLevel = Math.floor(gameState.playerXP / 500) + 1;
+        if (gameState.playerLevel > expectedLevel + 1) {
+            errors.push("level_xp_mismatch");
+            gameState.playerLevel = expectedLevel; // Auto-correct
+        }
+
+        // 3. If we have existing data, check for suspicious jumps
+        if (existingData) {
+            // maxLevel can only increase by 1 at a time
+            if (gameState.maxLevel > (existingData.maxLevel || 1) + 1) {
+                errors.push("maxLevel_jump");
+                gameState.maxLevel = (existingData.maxLevel || 1) + 1; // Auto-correct
+            }
+
+            // Daily reward can only be claimed once per day
+            if (gameState.lastLoginDate === existingData.lastLoginDate &&
+                gameState.loginStreak > existingData.loginStreak) {
+                errors.push("streak_manipulation");
+                gameState.loginStreak = existingData.loginStreak; // Restore
+            }
+        }
+
+        // 4. Inventory must be valid item IDs
+        const validItems = [
+            'long_range', 'speed_boost', 'double_jump', 'rapid_fire', 'shield',
+            'mega_speed', 'super_jump', 'bubble_master', 'coin_magnet', 'xp_boost',
+            'triple_jump', 'immortal_start'
+        ];
+        gameState.inventory = (gameState.inventory || []).filter(item => validItems.includes(item));
+
+        if (errors.length > 0) {
+            console.warn("⚠️ Anti-cheat validazione fallita:", errors);
+        }
+
+        return { valid: errors.length === 0, errors, correctedData: gameState };
+    }
+
+    static async saveProgress(identifier, gameState) {
         if (!db || !identifier) return;
 
         let docId = identifier;
 
         // If logged in, prefer saving to UID
         if (this.auth && this.auth.currentUser) {
-            // If the passed identifier matches the username of the logged in user, SAVE TO UID!
-            // Or if we change GameState to track UID.
-            // Strategy: The callee (GameState) tracks a 'storageKey'. 
-            // If we are logged in, we should save to users/{uid}.
-            // Let's rely on GameState passing the right ID? 
-            // No, GameState uses 'bubbleBobbleSave_USERNAME'.
-            // To support Auth without rewriting GameState completely, we can check here.
-
             if (this.auth.currentUser.uid === identifier) {
-                // It's a UID
                 docId = identifier;
             } else if (this.auth.currentUser.displayName === identifier) {
-                // It's the username, but we are authed. Save to UID indeed!
                 docId = this.auth.currentUser.uid;
             }
         }
 
-        // If it's a legacy username, it will just use it as Doc ID (e.g. 'mario').
-        // If it's a UID, it will use the UID string.
-        // A UID is usually long alpha-numeric. A username is usually shorter/different.
-        // The safest approach is: If we are authed, save to UID.
-
-        const lower = docId.toLowerCase(); // Careful, UIDs are case sensitive! 
-        // If we are saving to UID, DO NOT LOWERCASE.
-
         let targetDoc;
         if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
-            targetDoc = db.collection("users").doc(docId); // Exact UID
+            targetDoc = db.collection("users").doc(docId);
         } else if (this.auth && this.auth.currentUser && this.auth.currentUser.displayName === identifier) {
-            targetDoc = db.collection("users").doc(this.auth.currentUser.uid); // Redirect to UID
+            targetDoc = db.collection("users").doc(this.auth.currentUser.uid);
         } else {
-            targetDoc = db.collection("users").doc(docId.toLowerCase()); // Legacy behavior
+            targetDoc = db.collection("users").doc(docId.toLowerCase());
+        }
+
+        // === ANTI-CHEAT: Load existing data and validate ===
+        let existingData = null;
+        try {
+            const existingDoc = await targetDoc.get();
+            if (existingDoc.exists) {
+                const data = existingDoc.data();
+                existingData = {
+                    maxLevel: data.livelloMax || data.maxLevel || 1,
+                    loginStreak: data.serieAccessi || data.loginStreak || 0,
+                    lastLoginDate: data.ultimoLogin || data.lastLoginDate || null
+                };
+            }
+        } catch (e) {
+            console.log("Could not load existing data for validation");
+        }
+
+        // Validate and auto-correct cheating attempts
+        const validation = this.validateGameState(gameState, existingData);
+        if (!validation.valid) {
+            console.warn("🛑 Tentativo di cheat rilevato e corretto:", validation.errors);
         }
 
         try {

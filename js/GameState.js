@@ -25,81 +25,46 @@ export default class GameState {
             powerupsCollected: 0,
             totalDeaths: 0
         };
-        this.load();
+        this.isLoaded = false; // Flag to track if data has been loaded from cloud
+        // Data is loaded from cloud via syncFromCloud() called from main.js
     }
 
-    load() {
-        // Load Local
-        const data = localStorage.getItem(this.storageKey);
-        if (data) {
-            try {
-                const parsed = JSON.parse(data);
-                this.coins = parsed.coins || 0;
-                this.dragocoin = parsed.dragocoin || 0;
-                this.inventory = parsed.inventory || [];
-                this.achievements = parsed.achievements || [];
-                this.unlockedAchievements = parsed.unlockedAchievements || [];
-                this.playerXP = parsed.playerXP || 0;
-                this.playerLevel = parsed.playerLevel || 1;
-                this.lastLoginDate = parsed.lastLoginDate || null;
-                this.loginStreak = parsed.loginStreak || 0;
-                this.tutorialCompleted = parsed.tutorialCompleted || false;
-                this.stats = {
-                    speedLevel: 0,
-                    enemiesTrapped: 0,
-                    totalCoinsEarned: 0,
-                    totalFruitCollected: 0,
-                    gamesPlayed: 0,
-                    levelsCompleted: 0,
-                    powerupsCollected: 0,
-                    totalDeaths: 0,
-                    ...parsed.stats
-                };
-                this.maxLevel = parsed.maxLevel || 1;
-            } catch (e) {
-                console.error("Failed to load save data", e);
-            }
-        }
-    }
-
-    // New method to sync from cloud explicitly
+    // Load all data from Firebase cloud
     async syncFromCloud() {
         if (!this.username) return;
 
-        let cloudData = await Database.loadProgress(this.username);
+        try {
+            let cloudData = await Database.loadProgress(this.username);
 
-        // If guest, maybe cloudData is null, that's fine.
-        if (cloudData) {
-            console.log("Syncing from cloud:", cloudData);
-            // Merge logic: take max of coins/level if conflict? 
-            // For now, simpler: Cloud wins if it exists, or local wins if cloud is empty.
-            // Actually, usually cloud should be source of truth if we want cross-device.
-            this.coins = cloudData.coins !== undefined ? cloudData.coins : this.coins;
-            this.inventory = cloudData.inventory || this.inventory;
-            this.stats = cloudData.stats || this.stats;
-            this.maxLevel = Math.max(this.maxLevel, cloudData.maxLevel || 1);
+            if (cloudData) {
+                console.log("📥 Caricamento dati da Firebase:", cloudData);
 
-            this.save(false); // Save locally without echoing back to cloud immediately
+                // Load ALL fields from cloud (cloud is the only source of truth)
+                this.coins = cloudData.coins || 0;
+                this.dragocoin = cloudData.dragocoin || 0;
+                this.inventory = cloudData.inventory || [];
+                this.unlockedAchievements = cloudData.unlockedAchievements || [];
+                this.maxLevel = cloudData.maxLevel || 1;
+                this.playerXP = cloudData.playerXP || 0;
+                this.playerLevel = cloudData.playerLevel || 1;
+                this.lastLoginDate = cloudData.lastLoginDate || null;
+                this.loginStreak = cloudData.loginStreak || 0;
+                this.tutorialCompleted = cloudData.tutorialCompleted || false;
+                this.stats = cloudData.stats || this.stats;
+
+                this.isLoaded = true;
+                console.log("✅ Dati caricati con successo dal cloud");
+            } else {
+                console.log("📭 Nessun dato trovato nel cloud per:", this.username);
+                this.isLoaded = true; // Mark as loaded even if empty (new user)
+            }
+        } catch (error) {
+            console.error("❌ Errore caricamento da cloud:", error);
         }
     }
 
+    // Save data ONLY to Firebase cloud (no localStorage)
     save(syncToCloud = true) {
-        const data = {
-            coins: this.coins,
-            dragocoin: this.dragocoin,
-            inventory: this.inventory,
-            achievements: this.achievements,
-            unlockedAchievements: this.unlockedAchievements,
-            stats: this.stats,
-            maxLevel: this.maxLevel,
-            playerXP: this.playerXP,
-            playerLevel: this.playerLevel,
-            lastLoginDate: this.lastLoginDate,
-            loginStreak: this.loginStreak,
-            tutorialCompleted: this.tutorialCompleted
-        };
-        localStorage.setItem(this.storageKey, JSON.stringify(data));
-
         // Sync to cloud for ALL users (including guests)
         if (syncToCloud && this.username) {
             Database.saveProgress(this.username, this);
