@@ -235,6 +235,25 @@ export default class TutorialManager {
         this.complete();
     }
 
+    // Hide tutorial overlay (when exiting level without completing)
+    hide() {
+        this.active = false;
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
+        console.log('🔇 Tutorial nascosto');
+    }
+
+    // Reset tutorial state (for re-entering level)
+    reset() {
+        this.active = false;
+        this.currentStep = 0;
+        this.stepCompleted = false;
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
+    }
+
     // Update (called from game loop)
     update(input) {
         if (!this.active) return;

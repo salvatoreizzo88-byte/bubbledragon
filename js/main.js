@@ -1481,6 +1481,12 @@ window.addEventListener('load', () => {
         quitBtn.addEventListener('click', () => {
             togglePauseUI();
             gameStarted = false;
+
+            // Hide tutorial overlay if active
+            if (game.tutorial) {
+                game.tutorial.reset();
+            }
+
             game.resetGame();
             pauseScreen.style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex';
