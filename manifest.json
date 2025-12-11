@@ -4,7 +4,7 @@
     "description": "Bubble Bobble style platform game with cute dragon",
     "start_url": "./index.html",
     "scope": "./",
-    "display": "standalone",
+    "display": "fullscreen",
     "orientation": "portrait",
     "background_color": "#1a1a2e",
     "theme_color": "#7C4DFF",
