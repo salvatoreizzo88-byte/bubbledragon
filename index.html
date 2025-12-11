@@ -34,6 +34,38 @@
 </head>
 
 <body>
+    <!-- BETA PASSWORD PROTECTION -->
+    <div id="beta-gate"
+        style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #1a0030 0%, #000 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999; color: white; font-family: 'Press Start 2P', monospace;">
+        <h1 style="color: #7C4DFF; font-size: 24px; margin-bottom: 20px;">🐉 BETA PRIVATA</h1>
+        <p style="margin-bottom: 20px; font-size: 12px;">Inserisci la password per accedere</p>
+        <input type="password" id="beta-password" placeholder="Password..."
+            style="padding: 15px; font-size: 16px; border: 2px solid #7C4DFF; border-radius: 10px; background: #222; color: white; text-align: center; width: 200px;">
+        <button onclick="checkBetaPassword()"
+            style="margin-top: 15px; padding: 15px 30px; font-size: 14px; background: #7C4DFF; border: none; border-radius: 10px; color: white; cursor: pointer; font-family: 'Press Start 2P', monospace;">ENTRA</button>
+        <p id="beta-error" style="color: #ff4444; margin-top: 15px; font-size: 10px; display: none;">Password errata!
+        </p>
+    </div>
+    <script>
+        // Beta password: drago2024
+        function checkBetaPassword() {
+            const pwd = document.getElementById('beta-password').value;
+            if (pwd === 'drago2024') {
+                document.getElementById('beta-gate').style.display = 'none';
+                localStorage.setItem('betaAccess', 'true');
+            } else {
+                document.getElementById('beta-error').style.display = 'block';
+            }
+        }
+        document.getElementById('beta-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') checkBetaPassword();
+        });
+        // Skip if already authenticated
+        if (localStorage.getItem('betaAccess') === 'true') {
+            document.getElementById('beta-gate').style.display = 'none';
+        }
+    </script>
+
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div id="ui-layer">
