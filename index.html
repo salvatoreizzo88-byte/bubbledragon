@@ -363,6 +363,25 @@
             <div id="achievements-screen"
                 style="display: none; flex-direction: column; align-items: center; width: 90%; height: 85%; background: #222; border: 4px solid #ffd700; padding: 15px; box-sizing: border-box;">
                 <h2 style="color: #ffd700; margin-bottom: 5px; font-size: 14px;">🏆 OBIETTIVI</h2>
+
+                <!-- Daily Reward Section -->
+                <div id="daily-reward-section"
+                    style="width: 100%; background: linear-gradient(135deg, #2d1b4e, #1a1a3e); border: 2px solid #ffd700; border-radius: 10px; padding: 10px; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; flex-direction: column; gap: 3px;">
+                            <span style="color: #ffd700; font-size: 9px; font-family: 'Press Start 2P';">🎁 PREMIO
+                                GIORNALIERO</span>
+                            <span id="daily-reward-status" style="color: #888; font-size: 7px;">Caricamento...</span>
+                            <span id="daily-streak-info" style="color: #ff8c00; font-size: 7px;">🔥 Serie: 0
+                                giorni</span>
+                        </div>
+                        <button id="claim-daily-btn" class="menu-btn"
+                            style="font-size: 8px; padding: 8px 12px; background: linear-gradient(135deg, #ffd700, #ff8c00);">
+                            RISCUOTI 🎁
+                        </button>
+                    </div>
+                </div>
+
                 <div id="achievements-progress" style="color: #aaa; font-size: 10px; margin-bottom: 10px;">
                     Progresso: 0% | Punti: 0
                 </div>

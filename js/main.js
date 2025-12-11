@@ -114,9 +114,8 @@ window.addEventListener('load', () => {
                 let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
                 if (latestLevel < 0) latestLevel = 0;
                 renderPreview(latestLevel);
-
-                // Check daily reward for logged in user
-                checkAndShowDailyReward();
+                // Daily reward is now claimed manually from Objectives section
+                // No automatic popup
             } else {
                 // User is not logged in - guest mode
                 console.log("Nessun utente loggato - modalità ospite");
@@ -140,9 +139,8 @@ window.addEventListener('load', () => {
             if (latestLevel < 0) latestLevel = 0;
             renderPreview(latestLevel);
             updatePlayerLevelDisplay();
-
-            // CHECK FOR DAILY REWARD
-            checkAndShowDailyReward();
+            // Daily reward is now claimed manually from Objectives section
+            // No automatic popup
         });
     }, 300); // Slightly longer delay to let onAuthStateChanged run first
 
@@ -982,6 +980,63 @@ window.addEventListener('load', () => {
     const achievementsTabs = document.getElementById('achievements-tabs');
     const currentCategoryTitle = document.getElementById('current-category-title');
 
+    // Daily Reward in Objectives Section
+    const claimDailyBtn = document.getElementById('claim-daily-btn');
+    const dailyRewardStatus = document.getElementById('daily-reward-status');
+    const dailyStreakInfo = document.getElementById('daily-streak-info');
+
+    function updateDailyRewardUI() {
+        if (!dailyRewardStatus || !dailyStreakInfo || !claimDailyBtn) return;
+
+        const rewardCheck = gameState.checkDailyReward();
+        const streak = gameState.loginStreak || 0;
+
+        dailyStreakInfo.textContent = `🔥 Serie: ${streak} giorni`;
+
+        if (rewardCheck && rewardCheck.canClaim) {
+            // Reward available to claim
+            dailyRewardStatus.textContent = '✨ Disponibile!';
+            dailyRewardStatus.style.color = '#00ff00';
+            claimDailyBtn.disabled = false;
+            claimDailyBtn.style.opacity = '1';
+            claimDailyBtn.style.background = 'linear-gradient(135deg, #ffd700, #ff8c00)';
+            claimDailyBtn.textContent = 'RISCUOTI 🎁';
+        } else {
+            // Already claimed today
+            dailyRewardStatus.textContent = '✓ Già riscosso oggi';
+            dailyRewardStatus.style.color = '#888';
+            claimDailyBtn.disabled = true;
+            claimDailyBtn.style.opacity = '0.5';
+            claimDailyBtn.style.background = '#555';
+            claimDailyBtn.textContent = 'RISCOSSO ✓';
+        }
+    }
+
+    if (claimDailyBtn) {
+        claimDailyBtn.addEventListener('click', () => {
+            const result = gameState.claimDailyReward();
+            if (result) {
+                // Show success feedback
+                claimDailyBtn.textContent = `+${result.coins}🪙 +${result.xp}⭐`;
+                claimDailyBtn.style.background = '#00aa00';
+
+                // Update displays
+                updateDisplay();
+                updatePlayerLevelDisplay();
+
+                // Update the daily reward UI
+                setTimeout(() => {
+                    updateDailyRewardUI();
+                }, 1500);
+
+                console.log(`✅ Premio giornaliero riscosso: ${result.coins} monete, ${result.xp} XP, streak: ${result.streak}`);
+            } else {
+                console.log("⚠️ Premio già riscosso oggi");
+                updateDailyRewardUI();
+            }
+        });
+    }
+
     // Track current selected category
     let selectedCategory = 'livelli';
 
@@ -1105,6 +1160,7 @@ window.addEventListener('load', () => {
             mainMenu.style.display = 'none';
             achievementsScreen.style.display = 'flex';
             updateAchievementsUI();
+            updateDailyRewardUI(); // Update daily reward status
         });
     }
 
