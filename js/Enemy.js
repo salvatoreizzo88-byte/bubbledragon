@@ -14,6 +14,12 @@ export default class Enemy extends Entity {
         this.trappedDuration = 300; // 5 seconds
         this.bubbleRef = null; // Reference to the bubble trapping it
 
+        // Stuck detection - teleport if enemy can't reach player for too long
+        this.stuckTimer = 0;
+        this.lastX = x;
+        this.lastY = y;
+        this.stuckThreshold = 300; // 5 seconds of not moving = stuck
+
         // Animation system
         this.animation = new SimpleAnimation();
         this.wiggleTimer = 0;
@@ -72,6 +78,9 @@ export default class Enemy extends Entity {
 
             // Check if stuck inside a wall and fix it
             this.checkAndUnstuck();
+
+            // Check if stuck in inaccessible area (not moving much)
+            this.checkStuckInArea(deltaTime);
 
             // Simple AI: Turn around if hitting wall (checked in Game loop via collision side effect)
             // For now, let's just make them bounce off walls if speedX is 0
@@ -222,6 +231,75 @@ export default class Enemy extends Entity {
                     }
                 }
             }
+        }
+    }
+
+    // Check if enemy is stuck in an inaccessible area (can't reach player)
+    checkStuckInArea(deltaTime) {
+        // Calculate distance moved since last check
+        const distMoved = Math.abs(this.x - this.lastX) + Math.abs(this.y - this.lastY);
+
+        // If barely moved, increment stuck timer
+        if (distMoved < 5) {
+            this.stuckTimer += deltaTime;
+        } else {
+            this.stuckTimer = 0;
+        }
+
+        // Update last position
+        this.lastX = this.x;
+        this.lastY = this.y;
+
+        // If stuck for too long, teleport near player
+        if (this.stuckTimer >= this.stuckThreshold) {
+            this.stuckTimer = 0;
+
+            // Find position near player but not too close
+            const player = this.game.player;
+            const level = this.game.level;
+            const tileSize = level.tileSize;
+
+            // Try to spawn on a platform above the player
+            const playerTileX = Math.floor(player.x / tileSize);
+            const playerTileY = Math.floor(player.y / tileSize);
+
+            // Look for valid spawn position in player's area
+            for (let offsetX = -5; offsetX <= 5; offsetX++) {
+                for (let offsetY = -3; offsetY <= 0; offsetY++) {
+                    const checkX = playerTileX + offsetX;
+                    const checkY = playerTileY + offsetY;
+
+                    // Check bounds
+                    if (checkX >= 2 && checkX < level.cols - 2 &&
+                        checkY >= 1 && checkY < level.rows - 1) {
+
+                        // Check if empty with floor below
+                        if (level.map[checkY][checkX] === 0) {
+                            // Check for floor within 3 tiles below
+                            let hasFloor = false;
+                            for (let below = 1; below <= 3; below++) {
+                                if (checkY + below < level.rows && level.map[checkY + below][checkX] === 1) {
+                                    hasFloor = true;
+                                    break;
+                                }
+                            }
+
+                            if (hasFloor && Math.abs(offsetX) >= 2) { // Not too close to player
+                                this.x = checkX * tileSize;
+                                this.y = checkY * tileSize;
+                                this.speedX = (player.x < this.x ? -1 : 1) * this.speed;
+                                console.log('Enemy teleported near player from inaccessible area');
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Fallback: spawn at center top if can't find good position
+            this.x = this.game.width / 2;
+            this.y = tileSize * 2;
+            console.log('Enemy teleported to center fallback');
         }
     }
 }
