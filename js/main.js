@@ -227,6 +227,7 @@ window.addEventListener('load', () => {
 
                 // Update player level display
                 updatePlayerLevelDisplay();
+                updateDisplay();
 
                 // Close modal after delay
                 setTimeout(() => {
@@ -235,6 +236,10 @@ window.addEventListener('load', () => {
                     claimDailyRewardBtn.disabled = false;
                     claimDailyRewardBtn.style.background = 'linear-gradient(135deg, #ffd700, #ff8c00)';
                 }, 2000);
+            } else {
+                // Claim failed (already claimed) - close modal anyway
+                console.log("⚠️ Premio già riscosso - chiudendo modal");
+                document.getElementById('daily-reward-modal').style.display = 'none';
             }
         });
     }
