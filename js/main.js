@@ -16,11 +16,7 @@ window.addEventListener('load', () => {
     setTimeout(() => Database.init(), 100);
     window.Database = Database; // Expose for Game.js leaderboard access
 
-    // DEVELOPMENT: Cancella completamente il database per ripartire da zero
-    setTimeout(async () => {
-        await Database.clearAllData();
-    }, 1000);
-    // ... canvas    // Game Init
+    // Game Init
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 800;
@@ -70,6 +66,56 @@ window.addEventListener('load', () => {
     // Initialize AchievementManager
     const achievementManager = new AchievementManager(gameState);
     window.achievementManager = achievementManager; // Expose for Game.js access
+
+    // === AUTH STATE PERSISTENCE ===
+    // Check if user is already logged in when app opens
+    setTimeout(() => {
+        Database.onAuthStateChanged(async (user) => {
+            if (user) {
+                // User is logged in - restore session
+                console.log("Sessione utente attiva:", user.displayName || user.email);
+
+                // Get user data from Firestore
+                const userData = await Database.getUserData(user.uid);
+
+                // Update User Manager
+                const displayName = user.displayName || (userData && userData.username) || "Player";
+                userManager.setUsername(displayName);
+
+                // Update Game State with UID-based storage
+                userStorageKey = `bubbleBobbleSave_${user.uid}`;
+                gameState = new GameState(userStorageKey);
+
+                // Load cloud data if available
+                if (userData) {
+                    // Supporta entrambi i nomi (italiani e inglesi)
+                    gameState.coins = userData.monete !== undefined ? userData.monete : (userData.coins || 0);
+                    gameState.dragocoin = userData.dragocoin || 0;
+                    gameState.inventory = userData.inventario || userData.inventory || [];
+                    gameState.maxLevel = userData.livelloMax || userData.maxLevel || 1;
+                    gameState.playerLevel = userData.livelloGiocatore || userData.playerLevel || 1;
+                    gameState.playerXP = userData.puntiXP || userData.playerXP || 0;
+                    gameState.save(false);
+                }
+
+                // Update UI
+                updateDisplay();
+                updatePlayerLevelDisplay();
+
+                // Refresh Preview with correct level
+                let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
+                if (latestLevel < 0) latestLevel = 0;
+                renderPreview(latestLevel);
+
+                // Check daily reward for logged in user
+                checkAndShowDailyReward();
+            } else {
+                // User is not logged in - guest mode
+                console.log("Nessun utente loggato - modalità ospite");
+                updateDisplay();
+            }
+        });
+    }, 200); // Wait for Database.init() to complete
 
     // FORCE CLOUD SYNC ON STARTUP
     gameState.syncFromCloud().then(() => {

@@ -76,6 +76,29 @@ export default class Database {
         await this.auth.signOut();
     }
 
+    // Listen for auth state changes (for session persistence)
+    static onAuthStateChanged(callback) {
+        if (!this.auth) {
+            console.error("Auth not initialized for onAuthStateChanged");
+            return;
+        }
+        return this.auth.onAuthStateChanged(callback);
+    }
+
+    // Get user data from Firestore by UID
+    static async getUserData(uid) {
+        if (!db || !uid) return null;
+        try {
+            const doc = await db.collection("users").doc(uid).get();
+            if (doc.exists) {
+                return doc.data();
+            }
+        } catch (error) {
+            console.error("Error fetching user data:", error);
+        }
+        return null;
+    }
+
     // --- FIRESTORE METHODS ---
 
     static checkAvailability(username) {
@@ -452,42 +475,6 @@ export default class Database {
         } catch (error) {
             console.error("Error migrating users:", error);
             return 0;
-        }
-    }
-
-    // DEVELOPMENT ONLY: Clear ALL data from database
-    static async clearAllData() {
-        if (!db) {
-            console.error('Database non inizializzato');
-            return;
-        }
-
-        try {
-            console.log('⚠️ CANCELLAZIONE COMPLETA DATABASE...');
-
-            // Cancella tutti gli utenti
-            const usersSnapshot = await db.collection("users").get();
-            const usersBatch = db.batch();
-            usersSnapshot.forEach(doc => {
-                usersBatch.delete(doc.ref);
-            });
-            await usersBatch.commit();
-            console.log(`Cancellati ${usersSnapshot.size} utenti.`);
-
-            // Cancella la classifica
-            const leaderboardSnapshot = await db.collection("leaderboard").get();
-            const leaderboardBatch = db.batch();
-            leaderboardSnapshot.forEach(doc => {
-                leaderboardBatch.delete(doc.ref);
-            });
-            await leaderboardBatch.commit();
-            console.log(`Cancellate ${leaderboardSnapshot.size} voci classifica.`);
-
-            console.log('✅ DATABASE COMPLETAMENTE CANCELLATO!');
-            return true;
-        } catch (error) {
-            console.error("Errore cancellazione database:", error);
-            return false;
         }
     }
 
