@@ -95,7 +95,15 @@ window.addEventListener('load', () => {
                     gameState.maxLevel = userData.livelloMax || userData.maxLevel || 1;
                     gameState.playerLevel = userData.livelloGiocatore || userData.playerLevel || 1;
                     gameState.playerXP = userData.puntiXP || userData.playerXP || 0;
-                    gameState.save(false);
+                    gameState.lastLoginDate = userData.ultimoLogin || userData.lastLoginDate || null;
+                    gameState.loginStreak = userData.serieAccessi || userData.loginStreak || 0;
+                    gameState.tutorialCompleted = userData.tutorialCompletato || userData.tutorialCompleted || false;
+                    gameState.unlockedAchievements = userData.obiettiviSbloccati || userData.unlockedAchievements || [];
+                    gameState.isLoaded = true;
+                    console.log("✅ Dati utente autenticato caricati, lastLoginDate:", gameState.lastLoginDate);
+                } else {
+                    gameState.isLoaded = true; // Mark as loaded even if no data (new user)
+                    console.log("📭 Nessun dato cloud per utente autenticato");
                 }
 
                 // Update UI
