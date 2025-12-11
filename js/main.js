@@ -566,45 +566,48 @@ window.addEventListener('load', () => {
             if (check.available) {
                 const oldName = userManager.getUsername();
 
-                // Prepare full data for cloud
+                // Prepare full data for cloud (all fields!)
                 const userData = {
                     coins: gameState.coins,
+                    dragocoin: gameState.dragocoin || 0,
                     inventory: gameState.inventory,
                     stats: gameState.stats,
+                    maxLevel: gameState.maxLevel || 1,
+                    playerLevel: gameState.playerLevel || 1,
+                    playerXP: gameState.playerXP || 0,
+                    lastLoginDate: gameState.lastLoginDate,
+                    loginStreak: gameState.loginStreak || 0,
+                    unlockedAchievements: gameState.unlockedAchievements || [],
+                    tutorialCompleted: gameState.tutorialCompleted || false,
                     lastActive: new Date().toISOString()
                 };
 
-                // Register new name in DB
+                // Register new name in DB with all data
                 await Database.registerUser(newName, userData);
 
-                // If old name was NOT a guest account (guest accounts behave like local-only), delete it from DB
-                // We assume guest accounts start with 'utente_'
-                if (!oldName.startsWith('utente_')) {
+                // ALWAYS delete old user document (including guests!)
+                if (oldName && oldName !== newName) {
                     await Database.deleteUser(oldName);
+                    console.log(`Vecchio utente '${oldName}' eliminato dopo cambio nome.`);
                 }
 
-                // MIGRATION LOGIC (Local Storage)
-                const oldKey = userStorageKey;
-                const newKey = `bubbleBobbleSave_${newName}`;
-
-                // 1. Copy data from old key to new key (if new key is empty)
-                const oldData = localStorage.getItem(oldKey);
-                const newData = localStorage.getItem(newKey);
-
-                if (oldData && !newData) {
-                    localStorage.setItem(newKey, oldData);
-                    console.log(`Migrated data from ${oldKey} to ${newKey}`);
-                }
-
-                // 2. Update User Manager
+                // Update User Manager
                 userManager.setUsername(newName);
 
-                // 3. Update GameState
-                userStorageKey = newKey;
-                gameState = new GameState(userStorageKey); // Reload state with new key
+                // Update GameState with new username
+                userStorageKey = `bubbleBobbleSave_${newName}`;
+                gameState.username = newName;
+                gameState.storageKey = userStorageKey;
+
+                // Force save to new location
+                gameState.save();
 
                 updateDisplay();
+                updatePlayerLevelDisplay();
                 nameModal.style.display = 'none';
+
+                nameStatus.style.color = 'green';
+                nameStatus.innerText = `Nome cambiato in ${newName}!`;
             } else {
                 nameStatus.style.color = 'red';
                 nameStatus.innerText = check.error;

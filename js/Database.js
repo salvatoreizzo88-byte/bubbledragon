@@ -390,13 +390,27 @@ export default class Database {
     }
 
     static async deleteUser(username) {
-        if (!db || !username) return;
+        if (!db || !username) {
+            console.warn("deleteUser: DB o username mancante");
+            return false;
+        }
         const lower = username.toLowerCase();
         try {
-            await db.collection("users").doc(lower).delete();
-            console.log(`Utente ${username} eliminato dal DB.`);
+            // Check if document exists first
+            const docRef = db.collection("users").doc(lower);
+            const doc = await docRef.get();
+
+            if (doc.exists) {
+                await docRef.delete();
+                console.log(`✅ Utente '${username}' (doc: ${lower}) eliminato dal DB.`);
+                return true;
+            } else {
+                console.log(`⚠️ Utente '${username}' (doc: ${lower}) non trovato nel DB.`);
+                return false;
+            }
         } catch (error) {
-            console.error("Error deleting user:", error);
+            console.error("❌ Errore eliminazione utente:", error);
+            return false;
         }
     }
 
