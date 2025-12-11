@@ -125,19 +125,26 @@ window.addEventListener('load', () => {
         });
     }, 200); // Wait for Database.init() to complete
 
-    // FORCE CLOUD SYNC ON STARTUP
-    gameState.syncFromCloud().then(() => {
-        updateDisplay();
-        // Re-render preview to show correct level and lock state after sync
-        // Cap at maxLevels - 1
-        let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
-        if (latestLevel < 0) latestLevel = 0;
-        renderPreview(latestLevel);
-        updatePlayerLevelDisplay();
+    // FORCE CLOUD SYNC ON STARTUP (only for guest users, authenticated users load via onAuthStateChanged)
+    // Check if user is authenticated - if so, skip this as onAuthStateChanged handles it
+    setTimeout(() => {
+        if (Database.auth && Database.auth.currentUser) {
+            console.log("🔐 Utente autenticato - skip syncFromCloud (già caricato in onAuthStateChanged)");
+            return; // Already handled by onAuthStateChanged
+        }
 
-        // CHECK FOR DAILY REWARD
-        checkAndShowDailyReward();
-    });
+        // Guest user - sync from cloud
+        gameState.syncFromCloud().then(() => {
+            updateDisplay();
+            let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
+            if (latestLevel < 0) latestLevel = 0;
+            renderPreview(latestLevel);
+            updatePlayerLevelDisplay();
+
+            // CHECK FOR DAILY REWARD
+            checkAndShowDailyReward();
+        });
+    }, 300); // Slightly longer delay to let onAuthStateChanged run first
 
     // === DAILY REWARD SYSTEM ===
     let dailyRewardChecked = false; // Flag to prevent multiple checks per session
