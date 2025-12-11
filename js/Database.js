@@ -277,7 +277,8 @@ export default class Database {
                 powerupRaccolti: gameState.stats.powerupsCollected || 0,
                 moneteGuadagnate: gameState.stats.totalCoinsEarned || 0,
                 mortiTotali: gameState.stats.totalDeaths || 0,
-                frutteRaccolte: gameState.stats.totalFruitCollected || 0
+                frutteRaccolte: gameState.stats.totalFruitCollected || 0,
+                livelloVelocita: gameState.stats.speedLevel || 0
             };
 
             await targetDoc.update({
@@ -311,7 +312,8 @@ export default class Database {
                     powerupRaccolti: gameState.stats.powerupsCollected || 0,
                     moneteGuadagnate: gameState.stats.totalCoinsEarned || 0,
                     mortiTotali: gameState.stats.totalDeaths || 0,
-                    frutteRaccolte: gameState.stats.totalFruitCollected || 0
+                    frutteRaccolte: gameState.stats.totalFruitCollected || 0,
+                    livelloVelocita: gameState.stats.speedLevel || 0
                 };
 
                 await targetDoc.set({
@@ -376,7 +378,8 @@ export default class Database {
                         powerupsCollected: statsIt.powerupRaccolti || (data.stats?.powerupsCollected) || 0,
                         totalCoinsEarned: statsIt.moneteGuadagnate || (data.stats?.totalCoinsEarned) || 0,
                         totalDeaths: statsIt.mortiTotali || (data.stats?.totalDeaths) || 0,
-                        totalFruitCollected: statsIt.frutteRaccolte || (data.stats?.totalFruitCollected) || 0
+                        totalFruitCollected: statsIt.frutteRaccolte || (data.stats?.totalFruitCollected) || 0,
+                        speedLevel: statsIt.livelloVelocita || (data.stats?.speedLevel) || 0
                     }
                 };
             }
