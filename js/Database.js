@@ -291,6 +291,7 @@ export default class Database {
                 ultimoLogin: gameState.lastLoginDate || null,
                 serieAccessi: gameState.loginStreak || 0,
                 obiettiviSbloccati: gameState.unlockedAchievements || [],
+                tutorialCompletato: gameState.tutorialCompleted || false,
                 ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
             });
         } catch (error) {
@@ -325,6 +326,7 @@ export default class Database {
                     ultimoLogin: gameState.lastLoginDate || null,
                     serieAccessi: gameState.loginStreak || 0,
                     obiettiviSbloccati: gameState.unlockedAchievements || [],
+                    tutorialCompletato: gameState.tutorialCompleted || false,
                     ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
                 }, { merge: true });
             } catch (innerError) {
@@ -366,6 +368,7 @@ export default class Database {
                     lastLoginDate: data.ultimoLogin || null,
                     loginStreak: data.serieAccessi || 0,
                     unlockedAchievements: data.obiettiviSbloccati || [],
+                    tutorialCompleted: data.tutorialCompletato || false,
                     stats: {
                         enemiesTrapped: statsIt.nemiciCatturati || (data.stats?.enemiesTrapped) || 0,
                         gamesPlayed: statsIt.partiteGiocate || (data.stats?.gamesPlayed) || 0,
