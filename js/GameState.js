@@ -100,14 +100,8 @@ export default class GameState {
         };
         localStorage.setItem(this.storageKey, JSON.stringify(data));
 
-        if (syncToCloud && this.username && !this.username.startsWith('utente_')) {
-            // Only sync real users to cloud to save writes, or sync everyone?
-            // User requested cloud recall, so lets sync everyone or at least real users.
-            // Guest users might not need cloud unless they want to recover via ID?
-            // Let's sync everyone for now, or just real users as per request "account".
-            // Since guest accounts are random and disposable, syncing them just fills DB.
-            // Better to sync only if not "utente_"? User asked "tutto... registrato sull'account".
-            // Guest account IS an account. Let's sync it.
+        // Sync to cloud for ALL users (including guests)
+        if (syncToCloud && this.username) {
             Database.saveProgress(this.username, this);
         }
     }

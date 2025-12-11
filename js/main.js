@@ -467,11 +467,19 @@ window.addEventListener('load', () => {
             authStatus.style.color = 'yellow';
             authStatus.innerText = "REGISTERING...";
 
+            // Migrate ALL guest data to the new account
             const currentData = {
                 coins: gameState.coins,
+                dragocoin: gameState.dragocoin || 0,
                 inventory: gameState.inventory,
                 stats: gameState.stats,
-                maxLevel: gameState.maxLevel, // Carry over progress!
+                maxLevel: gameState.maxLevel,
+                playerLevel: gameState.playerLevel || 1,
+                playerXP: gameState.playerXP || 0,
+                lastLoginDate: gameState.lastLoginDate,
+                loginStreak: gameState.loginStreak || 0,
+                unlockedAchievements: gameState.unlockedAchievements || [],
+                tutorialCompleted: gameState.tutorialCompleted || false,
                 lastActive: new Date().toISOString()
             };
 
