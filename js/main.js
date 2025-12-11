@@ -132,10 +132,27 @@ window.addEventListener('load', () => {
     });
 
     // === DAILY REWARD SYSTEM ===
+    let dailyRewardChecked = false; // Flag to prevent multiple checks per session
+
     function checkAndShowDailyReward() {
+        // Only check once per session and only after data is loaded
+        if (dailyRewardChecked) {
+            console.log("🎁 Premio giornaliero già controllato in questa sessione");
+            return;
+        }
+
+        if (!gameState.isLoaded) {
+            console.log("⏳ Dati non ancora caricati, attendo...");
+            return;
+        }
+
         const rewardCheck = gameState.checkDailyReward();
         if (rewardCheck && rewardCheck.canClaim) {
+            dailyRewardChecked = true; // Mark as checked
             showDailyRewardModal(rewardCheck);
+        } else {
+            dailyRewardChecked = true; // Mark as checked even if no reward
+            console.log("🎁 Premio già riscosso oggi:", gameState.lastLoginDate);
         }
     }
 
