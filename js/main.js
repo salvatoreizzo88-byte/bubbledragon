@@ -565,49 +565,80 @@ window.addEventListener('load', () => {
 
             if (check.available) {
                 const oldName = userManager.getUsername();
+                const isAuthenticated = Database.auth && Database.auth.currentUser;
 
-                // Prepare full data for cloud (all fields!)
-                const userData = {
-                    coins: gameState.coins,
-                    dragocoin: gameState.dragocoin || 0,
-                    inventory: gameState.inventory,
-                    stats: gameState.stats,
-                    maxLevel: gameState.maxLevel || 1,
-                    playerLevel: gameState.playerLevel || 1,
-                    playerXP: gameState.playerXP || 0,
-                    lastLoginDate: gameState.lastLoginDate,
-                    loginStreak: gameState.loginStreak || 0,
-                    unlockedAchievements: gameState.unlockedAchievements || [],
-                    tutorialCompleted: gameState.tutorialCompleted || false,
-                    lastActive: new Date().toISOString()
-                };
+                if (isAuthenticated) {
+                    // === AUTHENTICATED USER: Update username in existing UID document ===
+                    const uid = Database.auth.currentUser.uid;
 
-                // Register new name in DB with all data
-                await Database.registerUser(newName, userData);
+                    try {
+                        // Update displayName in Auth
+                        await Database.auth.currentUser.updateProfile({
+                            displayName: newName
+                        });
 
-                // ALWAYS delete old user document (including guests!)
-                if (oldName && oldName !== newName) {
-                    await Database.deleteUser(oldName);
-                    console.log(`Vecchio utente '${oldName}' eliminato dopo cambio nome.`);
+                        // Update username field in Firestore document (keep same UID)
+                        await Database.updateUsername(uid, newName);
+
+                        // Update local state
+                        userManager.setUsername(newName);
+                        gameState.username = newName;
+
+                        // Force save (will save to same UID)
+                        gameState.save();
+
+                        updateDisplay();
+                        updatePlayerLevelDisplay();
+                        nameModal.style.display = 'none';
+
+                        nameStatus.style.color = 'green';
+                        nameStatus.innerText = `Nome cambiato in ${newName}!`;
+                        console.log(`✅ Username aggiornato da '${oldName}' a '${newName}' (UID: ${uid})`);
+                    } catch (error) {
+                        console.error("Errore cambio nome:", error);
+                        nameStatus.style.color = 'red';
+                        nameStatus.innerText = 'Errore durante il cambio nome';
+                    }
+                } else {
+                    // === GUEST USER: Create new document, delete old ===
+                    const userData = {
+                        coins: gameState.coins,
+                        dragocoin: gameState.dragocoin || 0,
+                        inventory: gameState.inventory,
+                        stats: gameState.stats,
+                        maxLevel: gameState.maxLevel || 1,
+                        playerLevel: gameState.playerLevel || 1,
+                        playerXP: gameState.playerXP || 0,
+                        lastLoginDate: gameState.lastLoginDate,
+                        loginStreak: gameState.loginStreak || 0,
+                        unlockedAchievements: gameState.unlockedAchievements || [],
+                        tutorialCompleted: gameState.tutorialCompleted || false,
+                        lastActive: new Date().toISOString()
+                    };
+
+                    // Create new document with new name
+                    await Database.registerUser(newName, userData);
+
+                    // Delete old guest document
+                    if (oldName && oldName !== newName) {
+                        await Database.deleteUser(oldName);
+                        console.log(`Vecchio utente guest '${oldName}' eliminato.`);
+                    }
+
+                    // Update local state
+                    userManager.setUsername(newName);
+                    userStorageKey = `bubbleBobbleSave_${newName}`;
+                    gameState.username = newName;
+                    gameState.storageKey = userStorageKey;
+                    gameState.save();
+
+                    updateDisplay();
+                    updatePlayerLevelDisplay();
+                    nameModal.style.display = 'none';
+
+                    nameStatus.style.color = 'green';
+                    nameStatus.innerText = `Nome cambiato in ${newName}!`;
                 }
-
-                // Update User Manager
-                userManager.setUsername(newName);
-
-                // Update GameState with new username
-                userStorageKey = `bubbleBobbleSave_${newName}`;
-                gameState.username = newName;
-                gameState.storageKey = userStorageKey;
-
-                // Force save to new location
-                gameState.save();
-
-                updateDisplay();
-                updatePlayerLevelDisplay();
-                nameModal.style.display = 'none';
-
-                nameStatus.style.color = 'green';
-                nameStatus.innerText = `Nome cambiato in ${newName}!`;
             } else {
                 nameStatus.style.color = 'red';
                 nameStatus.innerText = check.error;

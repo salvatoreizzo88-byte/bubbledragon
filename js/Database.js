@@ -174,6 +174,26 @@ export default class Database {
         }
     }
 
+    // Update username in existing document (for authenticated users)
+    static async updateUsername(uid, newUsername) {
+        if (!db || !uid) {
+            console.error("updateUsername: DB o UID mancante");
+            return false;
+        }
+        try {
+            await db.collection("users").doc(uid).update({
+                username: newUsername,
+                nomeUtente: newUsername,
+                lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`✅ Username aggiornato a '${newUsername}' per UID: ${uid}`);
+            return true;
+        } catch (error) {
+            console.error("❌ Errore aggiornamento username:", error);
+            return false;
+        }
+    }
+
     // === ANTI-CHEAT VALIDATION ===
     static validateGameState(gameState, existingData = null) {
         const errors = [];
