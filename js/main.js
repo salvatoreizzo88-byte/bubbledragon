@@ -144,105 +144,10 @@ window.addEventListener('load', () => {
         });
     }, 300); // Slightly longer delay to let onAuthStateChanged run first
 
-    // === DAILY REWARD SYSTEM ===
-    let dailyRewardChecked = false; // Flag to prevent multiple checks per session
 
-    function checkAndShowDailyReward() {
-        // Only check once per session and only after data is loaded
-        if (dailyRewardChecked) {
-            console.log("🎁 Premio giornaliero già controllato in questa sessione");
-            return;
-        }
-
-        if (!gameState.isLoaded) {
-            console.log("⏳ Dati non ancora caricati, attendo...");
-            return;
-        }
-
-        const rewardCheck = gameState.checkDailyReward();
-        if (rewardCheck && rewardCheck.canClaim) {
-            dailyRewardChecked = true; // Mark as checked
-            showDailyRewardModal(rewardCheck);
-        } else {
-            dailyRewardChecked = true; // Mark as checked even if no reward
-            console.log("🎁 Premio già riscosso oggi:", gameState.lastLoginDate);
-        }
-    }
-
-    function showDailyRewardModal(rewardCheck) {
-        const modal = document.getElementById('daily-reward-modal');
-        const streakCount = document.getElementById('streak-count');
-        const rewardCoinsValue = document.getElementById('reward-coins-value');
-        const rewardXPValue = document.getElementById('reward-xp-value');
-        const rewardDragocoin = document.getElementById('reward-dragocoin');
-        const rewardDragocoinValue = document.getElementById('reward-dragocoin-value');
-
-        if (!modal) return;
-
-        // Calculate preview rewards (same logic as claimDailyReward)
-        const baseCoins = 50;
-        const baseXP = 10;
-        const streakMultiplier = Math.min(rewardCheck.currentStreak, 7);
-        const previewCoins = baseCoins + (streakMultiplier * 10);
-        const previewXP = baseXP + (streakMultiplier * 5);
-
-        // Update UI
-        streakCount.textContent = rewardCheck.currentStreak;
-        rewardCoinsValue.textContent = `+${previewCoins}`;
-        rewardXPValue.textContent = `+${previewXP}`;
-
-        // Dragocoin is random, so show as "chance"
-        if (rewardDragocoin) {
-            rewardDragocoin.style.display = 'flex';
-            rewardDragocoinValue.textContent = '20% 🎲';
-        }
-
-        modal.style.display = 'flex';
-    }
-
-    // Daily reward claim button
-    const claimDailyRewardBtn = document.getElementById('claim-daily-reward-btn');
-    if (claimDailyRewardBtn) {
-        claimDailyRewardBtn.addEventListener('click', () => {
-            const result = gameState.claimDailyReward();
-            if (result) {
-                // Show what was actually claimed
-                const rewardCoinsValue = document.getElementById('reward-coins-value');
-                const rewardXPValue = document.getElementById('reward-xp-value');
-                const rewardDragocoinValue = document.getElementById('reward-dragocoin-value');
-
-                rewardCoinsValue.textContent = `+${result.coins} ✓`;
-                rewardXPValue.textContent = `+${result.xp} ✓`;
-                if (result.dragocoin > 0) {
-                    rewardDragocoinValue.textContent = `+${result.dragocoin} 🎉`;
-                } else {
-                    rewardDragocoinValue.textContent = '0 😢';
-                }
-
-                claimDailyRewardBtn.textContent = 'RISCOSSO! ✓';
-                claimDailyRewardBtn.disabled = true;
-                claimDailyRewardBtn.style.background = '#555';
-
-                // Update player level display
-                updatePlayerLevelDisplay();
-                updateDisplay();
-
-                // Close modal after delay
-                setTimeout(() => {
-                    document.getElementById('daily-reward-modal').style.display = 'none';
-                    claimDailyRewardBtn.textContent = 'RISCUOTI 🎁';
-                    claimDailyRewardBtn.disabled = false;
-                    claimDailyRewardBtn.style.background = 'linear-gradient(135deg, #ffd700, #ff8c00)';
-                }, 2000);
-            } else {
-                // Claim failed (already claimed) - close modal anyway
-                console.log("⚠️ Premio già riscosso - chiudendo modal");
-                document.getElementById('daily-reward-modal').style.display = 'none';
-            }
-        });
-    }
-
-
+    // === DAILY REWARD ===
+    // Daily reward is now managed in the Objectives section (achievements screen)
+    // No automatic popup - user claims manually from Objectives
     // USERNAME CHANGE LOGIC... (keep existing)
 
     // Carousel Logic
