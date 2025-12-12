@@ -185,7 +185,8 @@ export default class Game {
                 const levelTime = (Date.now() - this.levelStartTime) / 1000;
                 if (this.gameState) {
                     this.gameState.incrementStat('levelsCompleted');
-                    this.gameState.incrementStat('totalCoinsEarned', this.sessionCoins);
+                    // NOTE: totalCoinsEarned is already incremented when coins are collected (line ~462)
+                    // No need to increment again here to avoid double-counting
                 }
                 if (window.achievementManager) {
                     window.achievementManager.checkLevelComplete(
