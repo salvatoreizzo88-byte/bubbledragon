@@ -8,6 +8,7 @@ import Coin from './Coin.js';
 import ParticleSystem from './ParticleSystem.js';
 import TutorialManager from './TutorialManager.js';
 import GameConfig from './GameConfig.js';
+import Pathfinding from './Pathfinding.js';
 
 export default class Game {
     constructor(width, height, audioManager) {
@@ -42,6 +43,9 @@ export default class Game {
 
         // Tutorial system
         this.tutorial = new TutorialManager(this);
+
+        // AI Pathfinding system for enemies
+        this.pathfinding = new Pathfinding(this);
 
         this.startLevel();
     }
@@ -191,6 +195,9 @@ export default class Game {
             const spawnPos = this.level.getRandomSpawnPosition();
             this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y, speedMultiplier, this.levelIndex));
         }
+
+        // Update pathfinding grid with new level map
+        this.pathfinding.updateGrid(this.level.map);
     }
 
     update(deltaTime) {
@@ -201,6 +208,9 @@ export default class Game {
         // If 60fps, deltaTime ~16.67ms -> timeScale = 1
         // If 120fps, deltaTime ~8.33ms -> timeScale = 0.5
         const timeScale = deltaTime / 16.67;
+
+        // Process async pathfinding calculations
+        this.pathfinding.update();
 
         // Check Level Complete
         if (this.enemies.length === 0 && !this.levelComplete) {
