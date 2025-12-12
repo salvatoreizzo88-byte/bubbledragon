@@ -1408,6 +1408,15 @@ window.addEventListener('load', () => {
         game.setGameState(gameState);
         game.resetGame();
 
+        // Submit to leaderboard when starting a game (so even level 1 players appear)
+        if (gameState && gameState.username) {
+            Database.submitScore(
+                gameState.username,
+                gameState.playerLevel || 1,
+                gameState.maxLevel || 1
+            );
+        }
+
         // Set the level chosen in carousel
         game.levelIndex = currentPreviewLevel;
         game.startLevel();

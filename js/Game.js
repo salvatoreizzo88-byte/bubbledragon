@@ -267,16 +267,32 @@ export default class Game {
             // Check collision with player
             if (fruit.collectible && this.checkCollision(this.player, fruit)) {
                 fruit.markedForDeletion = true;
-                this.score += fruit.points;
+                this.score += fruit.points || 100;
 
                 // Particle effect for collecting fruit
                 this.particles.collectItem(fruit.x + fruit.width / 2, fruit.y + fruit.height / 2, '#ffd700');
 
                 if (this.gameState) {
+                    // Give coins
                     this.gameState.addCoins(10); // Each fruit gives 10 coins
                     this.gameState.incrementStat('totalFruitCollected');
                     this.sessionCoins = (this.sessionCoins || 0) + 10;
+
+                    // Give XP
+                    const xpGained = fruit.xpValue || 25;
+                    this.gameState.addXP(xpGained);
+                    this.sessionXP = (this.sessionXP || 0) + xpGained;
                 }
+
+                // Check for level up
+                const leveledUp = this.player.addXP(fruit.xpValue || 25);
+                if (leveledUp && this.gameState) {
+                    this.player.applyPowerups(this.gameState);
+                    this.audioManager.playSound('powerup');
+                } else {
+                    this.audioManager.playSound('coin');
+                }
+
                 this.updateUI();
             }
         });
@@ -402,32 +418,8 @@ export default class Game {
         });
         this.powerUps = this.powerUps.filter(p => !p.markedForDeletion);
 
-        // Fruit collision - gives XP now
-        this.fruits.forEach((fruit, fIndex) => {
-            if (this.checkCollision(this.player, fruit)) {
-                this.fruits.splice(fIndex, 1);
-
-                // Give XP to player (in-game) and save to gameState (persistent)
-                const leveledUp = this.player.addXP(fruit.xpValue);
-                this.score += 100; // Still gain some score
-                this.sessionXP += fruit.xpValue; // Track session XP for HUD
-
-                // Save XP to persistent gameState
-                if (this.gameState) {
-                    this.gameState.addXP(fruit.xpValue);
-                }
-
-                // If level up, reapply stats and show effect
-                if (leveledUp && this.gameState) {
-                    this.player.applyPowerups(this.gameState);
-                    this.audioManager.playSound('powerup');
-                } else {
-                    this.audioManager.playSound('coin');
-                }
-
-                this.updateUI(); // Update HUD after XP change
-            }
-        });
+        // NOTE: Fruit collision is now handled in the main fruits update loop (lines 267-298)
+        // This duplicate block was removed to avoid conflicts
 
         // Coin spawn logic (random spawn every few seconds)
         if (this.coinSpawnCooldown > 0) {
