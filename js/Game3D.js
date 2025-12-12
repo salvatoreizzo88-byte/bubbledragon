@@ -366,9 +366,9 @@ export default class Game3D {
             // Keep on ground level
             enemy.mesh.position.y = 1;
 
-            // Stay in bounds
-            enemy.mesh.position.x = Math.max(-9, Math.min(9, enemy.mesh.position.x));
-            enemy.mesh.position.z = Math.max(-9, Math.min(9, enemy.mesh.position.z));
+            // Stay in bounds (inside walls)
+            enemy.mesh.position.x = Math.max(-8, Math.min(8, enemy.mesh.position.x));
+            enemy.mesh.position.z = Math.max(-8, Math.min(8, enemy.mesh.position.z));
         });
     }
 
@@ -501,17 +501,22 @@ export default class Game3D {
                 }
             }
 
-            // Remove bubble if lifetime expired or out of bounds
+            // Remove bubble if lifetime expired or out of bounds (arena walls)
             if (bubble.lifetime <= 0 ||
-                Math.abs(bubble.mesh.position.x) > 15 ||
-                Math.abs(bubble.mesh.position.z) > 15 ||
-                bubble.mesh.position.y > 15) {
+                Math.abs(bubble.mesh.position.x) > 9 ||
+                Math.abs(bubble.mesh.position.z) > 9 ||
+                bubble.mesh.position.y > 10) {
 
-                // If bubble had enemy, release it
+                // If bubble had enemy, release it inside arena
                 if (bubble.trappedEnemy) {
                     bubble.trappedEnemy.trapped = false;
                     bubble.trappedEnemy.mesh.setEnabled(true);
-                    bubble.trappedEnemy.mesh.position = bubble.mesh.position.clone();
+                    // Clamp position to inside arena
+                    const releasePos = bubble.mesh.position.clone();
+                    releasePos.x = Math.max(-8, Math.min(8, releasePos.x));
+                    releasePos.z = Math.max(-8, Math.min(8, releasePos.z));
+                    releasePos.y = 1;
+                    bubble.trappedEnemy.mesh.position = releasePos;
                 }
 
                 bubble.mesh.dispose();
