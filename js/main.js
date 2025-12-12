@@ -85,6 +85,9 @@ window.addEventListener('load', () => {
                 const displayName = username || (userData && userData.nomeUtente) || "Player";
                 userManager.setUsername(displayName);
 
+                // Update localStorage to prevent guest username from being used
+                localStorage.setItem('bubbleBobbleUser', displayName);
+
                 // Update Game State with username-based storage
                 userStorageKey = `bubbleBobbleSave_${username || user.uid}`;
                 gameState = new GameState(userStorageKey);
