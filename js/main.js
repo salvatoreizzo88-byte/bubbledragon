@@ -133,7 +133,12 @@ window.addEventListener('load', () => {
         }
 
         // Guest user - sync from cloud
-        gameState.syncFromCloud().then(() => {
+        gameState.syncFromCloud().then((result) => {
+            // If username was reset to guest (because old one not found in Firebase)
+            if (result && result.usernameChanged) {
+                userManager.setUsername(result.newUsername);
+                console.log(`✅ UI aggiornata con nuovo username: ${result.newUsername}`);
+            }
             updateDisplay();
             let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
             if (latestLevel < 0) latestLevel = 0;
