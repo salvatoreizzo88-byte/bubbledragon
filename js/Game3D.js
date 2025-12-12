@@ -54,7 +54,7 @@ export default class Game3D {
         // Fixed camera from above - no rotation, clear view of arena
         this.camera = new BABYLON.FreeCamera(
             'camera',
-            new BABYLON.Vector3(0, 35, 20), // Position: high above for full arena view
+            new BABYLON.Vector3(0, 50, 25), // Position: very high for full arena view
             scene
         );
         // Look at center of arena
@@ -284,10 +284,10 @@ export default class Game3D {
             moveDir.x += 1;
         }
 
-        // Virtual joystick input (mobile)
+        // Virtual joystick input (mobile) - X inverted to match camera view
         if (this.joystickX !== undefined && this.joystickY !== undefined) {
-            moveDir.x += this.joystickX;
-            moveDir.z += this.joystickY;
+            moveDir.x -= this.joystickX;  // INVERTED
+            moveDir.z -= this.joystickY;  // INVERTED
         }
 
         // Normalize and apply speed (horizontal only)
