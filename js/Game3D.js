@@ -266,6 +266,12 @@ export default class Game3D {
             moveDir.x += 1;
         }
 
+        // Virtual joystick input (mobile)
+        if (this.joystickX !== undefined && this.joystickY !== undefined) {
+            moveDir.x += this.joystickX;
+            moveDir.z += this.joystickY;
+        }
+
         // Normalize and apply speed
         if (moveDir.length() > 0) {
             moveDir.normalize();

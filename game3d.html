@@ -3,8 +3,8 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Bubble Bobble 3D - Prototipo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Bubble Bobble 3D</title>
     <style>
         * {
             margin: 0;
@@ -18,6 +18,7 @@
             height: 100%;
             overflow: hidden;
             background: #1a0a2e;
+            touch-action: none;
         }
 
         #game-canvas {
@@ -29,67 +30,89 @@
 
         #ui-overlay {
             position: absolute;
-            top: 20px;
+            top: env(safe-area-inset-top, 20px);
             left: 20px;
             color: white;
-            font-family: 'Arial', sans-serif;
+            font-family: Arial, sans-serif;
             z-index: 100;
+            pointer-events: none;
         }
 
         #ui-overlay h1 {
-            font-size: 24px;
+            font-size: 20px;
             color: #ff00de;
             text-shadow: 0 0 10px #ff00de;
-            margin-bottom: 10px;
         }
 
         #ui-overlay p {
-            font-size: 14px;
+            font-size: 12px;
             color: #aaa;
-            margin: 5px 0;
         }
 
-        #controls {
+        /* Joystick */
+        #joystick-container {
             position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
+            bottom: calc(env(safe-area-inset-bottom, 20px) + 20px);
+            left: 30px;
+            width: 120px;
+            height: 120px;
             z-index: 100;
         }
 
-        .control-btn {
-            width: 60px;
-            height: 60px;
+        #joystick-base {
+            width: 120px;
+            height: 120px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            color: white;
-            font-size: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
+            background: rgba(255, 255, 255, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            position: relative;
         }
 
-        .control-btn:active {
-            background: rgba(255, 255, 255, 0.4);
+        #joystick-stick {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #ff00de, #9900ff);
+            border: 2px solid white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(255, 0, 222, 0.5);
         }
 
+        /* Buttons */
         #shoot-btn {
             position: absolute;
-            bottom: 100px;
+            bottom: calc(env(safe-area-inset-bottom, 20px) + 30px);
             right: 30px;
-            width: 80px;
-            height: 80px;
+            width: 90px;
+            height: 90px;
             border-radius: 50%;
             background: linear-gradient(135deg, #00d4ff, #0066ff);
             border: 3px solid white;
             color: white;
-            font-size: 16px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #jump-btn {
+            position: absolute;
+            bottom: calc(env(safe-area-inset-bottom, 20px) + 140px);
+            right: 40px;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00ff88, #00aa55);
+            border: 3px solid white;
+            color: white;
+            font-size: 12px;
             font-weight: bold;
             z-index: 100;
         }
@@ -101,72 +124,89 @@
 
     <div id="ui-overlay">
         <h1>🐉 Bubble Bobble 3D</h1>
-        <p>WASD o Frecce per muoverti</p>
-        <p>Spazio per sparare bolle</p>
         <p id="fps">FPS: --</p>
     </div>
 
-    <!-- Mobile Touch Controls -->
-    <div id="controls">
-        <button class="control-btn" id="btn-left">◀</button>
-        <div style="display: flex; flex-direction: column; gap: 10px;">
-            <button class="control-btn" id="btn-up">▲</button>
-            <button class="control-btn" id="btn-down">▼</button>
+    <div id="joystick-container">
+        <div id="joystick-base">
+            <div id="joystick-stick"></div>
         </div>
-        <button class="control-btn" id="btn-right">▶</button>
     </div>
 
-    <button id="shoot-btn">🫧<br>BOLLA</button>
+    <button id="shoot-btn">🫧<br>SPARA</button>
+    <button id="jump-btn">⬆️<br>SALTA</button>
 
-    <!-- Babylon.js -->
     <script src="js/lib/babylon.min.js"></script>
-
-    <!-- Game -->
     <script type="module">
         import Game3D from './js/Game3D.js';
 
-        // Wait for DOM
         window.addEventListener('DOMContentLoaded', () => {
             const canvas = document.getElementById('game-canvas');
             const game = new Game3D(canvas, null);
 
             // FPS counter
             setInterval(() => {
-                document.getElementById('fps').textContent =
-                    `FPS: ${game.engine.getFps().toFixed(0)}`;
+                document.getElementById('fps').textContent = `FPS: ${game.engine.getFps().toFixed(0)}`;
             }, 500);
 
-            // Spacebar to shoot
-            window.addEventListener('keydown', (e) => {
-                if (e.code === 'Space') {
-                    game.shootBubble();
-                }
-            });
+            // === JOYSTICK ===
+            const joystickContainer = document.getElementById('joystick-container');
+            const joystickStick = document.getElementById('joystick-stick');
+            const maxDistance = 40;
+            let joystickActive = false;
 
-            // Mobile touch controls
-            const setupTouchControl = (btnId, key) => {
-                const btn = document.getElementById(btnId);
-                btn.addEventListener('touchstart', (e) => {
-                    e.preventDefault();
-                    game.keys[key] = true;
-                });
-                btn.addEventListener('touchend', (e) => {
-                    e.preventDefault();
-                    game.keys[key] = false;
-                });
+            const updateJoystick = (touchX, touchY) => {
+                const rect = joystickContainer.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+
+                let deltaX = touchX - centerX;
+                let deltaY = touchY - centerY;
+
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                if (distance > maxDistance) {
+                    deltaX = (deltaX / distance) * maxDistance;
+                    deltaY = (deltaY / distance) * maxDistance;
+                }
+
+                joystickStick.style.transform = `translate(calc(-50% + ${deltaX}px), calc(-50% + ${deltaY}px))`;
+                game.joystickX = deltaX / maxDistance;
+                game.joystickY = deltaY / maxDistance;
             };
 
-            setupTouchControl('btn-up', 'ArrowUp');
-            setupTouchControl('btn-down', 'ArrowDown');
-            setupTouchControl('btn-left', 'ArrowLeft');
-            setupTouchControl('btn-right', 'ArrowRight');
+            joystickContainer.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            joystickContainer.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (joystickActive) updateJoystick(e.touches[0].clientX, e.touches[0].clientY);
+            });
+            joystickContainer.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                joystickStick.style.transform = 'translate(-50%, -50%)';
+                game.joystickX = 0;
+                game.joystickY = 0;
+            });
 
+            // === BUTTONS ===
             document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 game.shootBubble();
             });
+            document.getElementById('jump-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (game.jump) game.jump();
+            });
 
-            console.log('🎮 Bubble Bobble 3D Prototype Ready!');
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') game.shootBubble();
+            });
+
+            console.log('🎮 Bubble Bobble 3D Ready!');
         });
     </script>
 </body>
