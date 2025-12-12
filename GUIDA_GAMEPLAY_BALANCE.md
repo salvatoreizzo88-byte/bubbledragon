@@ -38,10 +38,9 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 
 ## 🔴 Problemi di Giocabilità Identificati
 
-### 1. Transizione Livello Troppo Lunga
-- **Problema:** 15 secondi è troppo per i giocatori moderni
-- **Soluzione:** Ridurre a 3-5 secondi
-- **Come:** In `GameConfig.js` cambiare `transitionDuration: 900` → `180-300`
+### 1. ~~Transizione Livello Troppo Lunga~~ ✅ OK
+- **Nota:** I 15 secondi servono per raccogliere i frutti caduti dopo aver sconfitto i nemici
+- **Status:** Valore corretto, NON modificare
 
 ### 2. Sistema Vite Frustrante
 - **Problema:** 3 vite e poi game over totale
@@ -67,12 +66,6 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 ---
 
 ## ✅ Quick Wins - Modifiche Facili
-
-### Ridurre Transizione Livello
-```javascript
-// GameConfig.js linea 42
-transitionDuration: 180, // Era 900 (15s) → Ora 180 (3s)
-```
 
 ### Aumentare Invulnerabilità Iniziale
 ```javascript
