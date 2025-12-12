@@ -140,10 +140,18 @@ window.addEventListener('load', () => {
 
     // FORCE CLOUD SYNC ON STARTUP (only for guest users, authenticated users load via onAuthStateChanged)
     // Check if user is authenticated - if so, skip this as onAuthStateChanged handles it
+    // Use longer delay to ensure Firebase Auth has time to restore session
     setTimeout(() => {
+        // Double-check: if onAuthStateChanged already handled the user, skip
         if (Database.auth && Database.auth.currentUser) {
             console.log("🔐 Utente autenticato - skip syncFromCloud (già caricato in onAuthStateChanged)");
             return; // Already handled by onAuthStateChanged
+        }
+
+        // Also skip if data was already loaded by onAuthStateChanged
+        if (isUserDataLoaded) {
+            console.log("🔐 Dati già caricati - skip syncFromCloud");
+            return;
         }
 
         // Guest user - sync from cloud
@@ -162,7 +170,7 @@ window.addEventListener('load', () => {
             // Daily reward is now claimed manually from Objectives section
             // No automatic popup
         });
-    }, 300); // Slightly longer delay to let onAuthStateChanged run first
+    }, 800); // Increased delay to ensure onAuthStateChanged has time to fire
 
 
     // === DAILY REWARD ===
