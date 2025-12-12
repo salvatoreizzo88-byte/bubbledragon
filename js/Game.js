@@ -462,6 +462,7 @@ export default class Game {
                 }
 
                 this.audioManager.playSound('coin');
+                this.updateUI(); // Update coin counter on screen
             }
         });
 
