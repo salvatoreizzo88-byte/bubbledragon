@@ -1622,7 +1622,12 @@ window.addEventListener('load', () => {
             pauseScreen.style.display = 'none';
             document.getElementById('start-screen').style.display = 'flex';
             setTouchControls(false);
-            renderPreview(currentPreviewLevel);
+
+            // Update preview to show the LATEST unlocked level (not session start level)
+            let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
+            if (latestLevel < 0) latestLevel = 0;
+            currentPreviewLevel = latestLevel; // Update the variable too
+            renderPreview(latestLevel);
             updatePlayerLevelDisplay(); // Update level bar on main menu
         });
     }
