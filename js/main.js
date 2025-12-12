@@ -138,39 +138,9 @@ window.addEventListener('load', () => {
         });
     }, 200); // Wait for Database.init() to complete
 
-    // FORCE CLOUD SYNC ON STARTUP (only for guest users, authenticated users load via onAuthStateChanged)
-    // Check if user is authenticated - if so, skip this as onAuthStateChanged handles it
-    // Use longer delay to ensure Firebase Auth has time to restore session
-    setTimeout(() => {
-        // Double-check: if onAuthStateChanged already handled the user, skip
-        if (Database.auth && Database.auth.currentUser) {
-            console.log("🔐 Utente autenticato - skip syncFromCloud (già caricato in onAuthStateChanged)");
-            return; // Already handled by onAuthStateChanged
-        }
-
-        // Also skip if data was already loaded by onAuthStateChanged
-        if (isUserDataLoaded) {
-            console.log("🔐 Dati già caricati - skip syncFromCloud");
-            return;
-        }
-
-        // Guest user - sync from cloud
-        gameState.syncFromCloud().then((result) => {
-            // If username was reset to guest (because old one not found in Firebase)
-            if (result && result.usernameChanged) {
-                userManager.setUsername(result.newUsername);
-                console.log(`✅ UI aggiornata con nuovo username: ${result.newUsername}`);
-            }
-            isUserDataLoaded = true;
-            updateDisplay();
-            let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
-            if (latestLevel < 0) latestLevel = 0;
-            renderPreview(latestLevel);
-            updatePlayerLevelDisplay();
-            // Daily reward is now claimed manually from Objectives section
-            // No automatic popup
-        });
-    }, 1500); // Longer delay to ensure Firebase Auth has time to restore session
+    // NOTE: Cloud sync for guest users is now handled directly in onAuthStateChanged
+    // When user is null (not authenticated), we load guest data there
+    // This eliminates the race condition that was causing user reset issues
 
 
     // === DAILY REWARD ===
