@@ -110,6 +110,7 @@ export default class Level {
 
             // Wrap around if falling through bottom
             if (entity.y > this.game.height) {
+                console.log(`🔄 WRAP: Entity at y=${entity.y.toFixed(0)} (> ${this.game.height}) wrapping to top!`);
                 entity.y = -entity.height; // Appear at top
                 // Keep entity in safe X range (not too close to walls)
                 // Clamp X to ensure it's not inside a side wall
