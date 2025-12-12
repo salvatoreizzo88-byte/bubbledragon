@@ -176,10 +176,10 @@ window.addEventListener('load', () => {
                     if (userData.statistiche || userData.stats) {
                         const cloudStats = userData.statistiche || userData.stats;
                         gameState.stats = {
-                            speedLevel: cloudStats.speedLevel || 0,
+                            speedLevel: cloudStats.speedLevel || cloudStats.livelloVelocita || 0,
                             enemiesTrapped: cloudStats.enemiesTrapped || cloudStats.nemiciCatturati || 0,
-                            totalCoinsEarned: cloudStats.totalCoinsEarned || cloudStats.moneteTotali || 0,
-                            totalFruitCollected: cloudStats.totalFruitCollected || cloudStats.fruttaRaccolta || 0,
+                            totalCoinsEarned: cloudStats.totalCoinsEarned || cloudStats.moneteGuadagnate || 0,
+                            totalFruitCollected: cloudStats.totalFruitCollected || cloudStats.frutteRaccolte || 0,
                             gamesPlayed: cloudStats.gamesPlayed || cloudStats.partiteGiocate || 0,
                             levelsCompleted: cloudStats.levelsCompleted || cloudStats.livelliCompletati || 0,
                             powerupsCollected: cloudStats.powerupsCollected || cloudStats.powerupRaccolti || 0,
