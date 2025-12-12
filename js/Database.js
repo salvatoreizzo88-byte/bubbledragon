@@ -246,25 +246,12 @@ export default class Database {
     static async saveProgress(identifier, gameState) {
         if (!db || !identifier) return;
 
-        let docId = identifier;
+        // ALWAYS use username as document ID (lowercase for consistency)
+        const docId = identifier.toLowerCase();
+        const targetDoc = db.collection("users").doc(docId);
 
-        // If logged in, prefer saving to UID
-        if (this.auth && this.auth.currentUser) {
-            if (this.auth.currentUser.uid === identifier) {
-                docId = identifier;
-            } else if (this.auth.currentUser.displayName === identifier) {
-                docId = this.auth.currentUser.uid;
-            }
-        }
-
-        let targetDoc;
-        if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
-            targetDoc = db.collection("users").doc(docId);
-        } else if (this.auth && this.auth.currentUser && this.auth.currentUser.displayName === identifier) {
-            targetDoc = db.collection("users").doc(this.auth.currentUser.uid);
-        } else {
-            targetDoc = db.collection("users").doc(docId.toLowerCase());
-        }
+        // Get auth UID if logged in (to link document to authenticated user)
+        const authUid = (this.auth && this.auth.currentUser) ? this.auth.currentUser.uid : null;
 
         // === ANTI-CHEAT: Load existing data and validate ===
         let existingData = null;
@@ -289,12 +276,6 @@ export default class Database {
         }
 
         try {
-            // Determine username for the field
-            let nameToSave = identifier;
-            if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
-                nameToSave = this.auth.currentUser.displayName || "Unknown";
-            }
-
             // Converti stats in italiano
             const statistiche = {
                 nemiciCatturati: gameState.stats.enemiesTrapped || 0,
@@ -307,9 +288,9 @@ export default class Database {
                 livelloVelocita: gameState.stats.speedLevel || 0
             };
 
-            // Use set with merge to create document if it doesn't exist
-            await targetDoc.set({
-                nomeUtente: nameToSave,
+            // Build document data
+            const docData = {
+                nomeUtente: identifier, // Original case username
                 monete: gameState.coins,
                 dragocoin: gameState.dragocoin || 0,
                 inventario: gameState.inventory,
@@ -322,7 +303,15 @@ export default class Database {
                 obiettiviSbloccati: gameState.unlockedAchievements || [],
                 tutorialCompletato: gameState.tutorialCompleted || false,
                 ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
-            }, { merge: true });
+            };
+
+            // Add auth UID if user is authenticated (links document to Firebase Auth)
+            if (authUid) {
+                docData.authUid = authUid;
+            }
+
+            // Use set with merge to create document if it doesn't exist
+            await targetDoc.set(docData, { merge: true });
         } catch (error) {
             console.error("Errore salvataggio progressi:", error);
         }
@@ -331,15 +320,9 @@ export default class Database {
     static async loadProgress(identifier) {
         if (!db || !identifier) return null;
 
-        // Similar logic for load
-        let targetDoc;
-        if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === identifier) {
-            targetDoc = db.collection("users").doc(identifier);
-        } else if (this.auth && this.auth.currentUser && this.auth.currentUser.displayName === identifier) {
-            targetDoc = db.collection("users").doc(this.auth.currentUser.uid);
-        } else {
-            targetDoc = db.collection("users").doc(identifier.toLowerCase());
-        }
+
+        // ALWAYS use username as document ID (lowercase for consistency)
+        const targetDoc = db.collection("users").doc(identifier.toLowerCase());
 
         try {
             const doc = await targetDoc.get();
