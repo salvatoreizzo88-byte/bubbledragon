@@ -591,8 +591,10 @@ export default class Game {
     }
 
     updateUI() {
+        const livesEl = document.getElementById('lives');
         const scoreEl = document.getElementById('score');
         const coinsEl = document.getElementById('high-score');
+        if (livesEl) livesEl.innerText = '❤️ VITE: ' + this.player.lives;
         if (scoreEl) scoreEl.innerText = '⭐ XP: ' + this.sessionXP;
         if (coinsEl) coinsEl.innerText = '🪙 MONETE: ' + this.sessionCoins;
     }
