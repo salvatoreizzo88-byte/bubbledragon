@@ -170,7 +170,7 @@ window.addEventListener('load', () => {
             // Daily reward is now claimed manually from Objectives section
             // No automatic popup
         });
-    }, 800); // Increased delay to ensure onAuthStateChanged has time to fire
+    }, 1500); // Longer delay to ensure Firebase Auth has time to restore session
 
 
     // === DAILY REWARD ===

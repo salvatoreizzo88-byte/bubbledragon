@@ -213,13 +213,9 @@ export default class Database {
 
         // 3. If we have existing data, check for suspicious jumps
         if (existingData) {
-            // maxLevel can increase by up to 3 levels per save (player may complete multiple levels quickly)
-            // Tolerance +3 prevents false positives during normal gameplay
-            const maxAllowedJump = (existingData.maxLevel || 1) + 3;
-            if (gameState.maxLevel > maxAllowedJump) {
-                errors.push("maxLevel_jump");
-                gameState.maxLevel = maxAllowedJump; // Auto-correct
-            }
+            // NOTE: maxLevel_jump check DISABLED - too many false positives during normal gameplay
+            // Players can complete multiple levels in one session, making this check unreliable
+            // Keeping streak manipulation check as it's more reliable
 
             // Daily reward can only be claimed once per day
             if (gameState.lastLoginDate === existingData.lastLoginDate &&
