@@ -273,10 +273,8 @@ export default class Game {
                 this.particles.collectItem(fruit.x + fruit.width / 2, fruit.y + fruit.height / 2, '#ffd700');
 
                 if (this.gameState) {
-                    // Give coins
-                    this.gameState.addCoins(10); // Each fruit gives 10 coins
+                    // Fruit gives XP only, NOT coins
                     this.gameState.incrementStat('totalFruitCollected');
-                    this.sessionCoins = (this.sessionCoins || 0) + 10;
 
                     // Give XP
                     const xpGained = fruit.xpValue || 25;
@@ -457,8 +455,9 @@ export default class Game {
                 }
                 this.sessionCoins += coinValue;
 
-                // Track stats
+                // Add coins to gameState (persistent)
                 if (this.gameState) {
+                    this.gameState.addCoins(coinValue);
                     this.gameState.incrementStat('totalCoinsEarned', coinValue);
                 }
 
