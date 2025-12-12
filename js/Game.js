@@ -506,8 +506,10 @@ export default class Game {
             }
         });
 
-        // Check collision with trapped enemies
-        this.enemies.forEach((enemy, eIndex) => {
+        // Check collision with trapped enemies (using for loop to allow break)
+        for (let eIndex = this.enemies.length - 1; eIndex >= 0; eIndex--) {
+            const enemy = this.enemies[eIndex];
+
             if (enemy.trapped && this.checkCollision(this.player, enemy)) {
                 // Pop enemy
                 // Spawn fruit
@@ -531,6 +533,7 @@ export default class Game {
                     this.player.invulnerableTimer = 180; // Give invulnerability
                     this.audioManager.playSound('pop');
                     console.log("Scudo consumato!");
+                    break; // Exit loop after shield consumed
                 } else {
                     this.player.lives--;
                     console.log("💀 Vita persa! Vite rimanenti:", this.player.lives);
@@ -542,18 +545,18 @@ export default class Game {
                     // Check if player is out of lives - show continue screen
                     if (this.player.lives <= 0) {
                         this.showContinueScreen();
-                        return; // Exit checkCollisions immediately
+                        return; // Exit checkCollisions function completely
                     } else {
                         this.player.reset();
                         if (this.gameState) {
                             this.player.applyPowerups(this.gameState);
                         }
                         this.sessionCoins = Math.floor(this.sessionCoins * 0.8);
-                        return; // Exit to avoid multiple collisions in same frame
+                        break; // Exit loop to avoid multiple collisions in same frame
                     }
                 }
             }
-        });
+        }
     }
 
     draw(context) {
