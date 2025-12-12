@@ -100,19 +100,18 @@ export default class Enemy extends Entity {
             // NOTE: grounded is set by Level.checkCollisionY() when enemy lands on platform
             // Do NOT override it here - that was causing the jump bug!
 
-            // === CHASER BEHAVIOR with PATHFINDING ===
+            // === CHASER BEHAVIOR - SMART AI ===
             if (this.isChaser && player) {
                 const dx = player.x - this.x;
                 const dy = player.y - this.y;
+                const distToPlayer = Math.sqrt(dx * dx + dy * dy);
 
                 // Update pathfinding timer
                 this.pathUpdateTimer -= deltaTime;
 
-                // Request new path periodically
+                // Request path periodically for horizontal direction
                 if (this.pathUpdateTimer <= 0 && this.usePathfinding) {
                     this.pathUpdateTimer = this.pathUpdateInterval;
-
-                    // Request path from current position to player
                     this.game.pathfinding.findPath(this.x, this.y, player.x, player.y)
                         .then(path => {
                             if (path && path.length > 1) {
@@ -122,67 +121,66 @@ export default class Enemy extends Entity {
                         });
                 }
 
-                // Follow path if we have one
+                // === HORIZONTAL MOVEMENT ===
+                // Use pathfinding for direction if available, otherwise direct chase
                 if (this.currentPath && this.currentPath.length > 1) {
-                    // Find next waypoint
                     const nextWaypoint = this.currentPath[Math.min(this.currentWaypointIndex + 1, this.currentPath.length - 1)];
                     const wpDx = nextWaypoint.x - this.x;
-                    const wpDy = nextWaypoint.y - this.y;
 
-                    // Check if reached current waypoint
-                    if (Math.abs(wpDx) < 30 && Math.abs(wpDy) < 30) {
-                        this.currentWaypointIndex++;
-                    }
-
-                    // Move towards waypoint
+                    // Move towards waypoint horizontally
                     if (Math.abs(wpDx) > 15) {
                         this.speedX = wpDx > 0 ? this.speed : -this.speed;
                     }
 
-                    // Jump if waypoint is above us
-                    if (this.canJump && this.grounded && this.jumpCooldown <= 0) {
-                        if (wpDy < -20) {
-                            this.speedY = -this.jumpForce;
-                            this.jumpCooldown = 45;
-                            this.grounded = false;
-                            console.log(`🧭 Enemy pathfinding jump! wpDy=${wpDy.toFixed(0)}`);
-                        }
-                        // Also jump if blocked by wall
-                        else if (wasBlockedByWall && Math.abs(wpDx) > 20) {
-                            this.speedY = -this.jumpForce;
-                            this.jumpCooldown = 45;
-                            this.grounded = false;
-                            this.speedX = wpDx > 0 ? this.speed * 1.3 : -this.speed * 1.3;
-                            console.log(`🧭 Enemy pathfinding wall jump!`);
-                        }
-                    }
-
-                    // Log debug occasionally
-                    if (Math.random() < 0.003) {
-                        console.log(`🧭 Pathfinding: waypoint ${this.currentWaypointIndex}/${this.currentPath.length}, wpDx=${wpDx.toFixed(0)}, wpDy=${wpDy.toFixed(0)}`);
+                    // Advance waypoint when reached
+                    if (Math.abs(wpDx) < 30) {
+                        this.currentWaypointIndex++;
                     }
                 } else {
-                    // Fallback to simple chase if no path
-                    if (this.chaseUpdateTimer <= 0) {
-                        this.chaseUpdateTimer = 30;
-                        if (Math.abs(dx) > 20) {
-                            this.speedX = dx > 0 ? this.speed : -this.speed;
-                        }
+                    // No path - direct horizontal chase
+                    if (Math.abs(dx) > 20) {
+                        this.speedX = dx > 0 ? this.speed : -this.speed;
+                    }
+                }
+
+                // === SMART JUMPING ===
+                // Only jump when it makes sense to reach the player
+                if (this.canJump && this.grounded && this.jumpCooldown <= 0) {
+
+                    // CASE 1: Player is ABOVE us and within horizontal reach
+                    // This is the main case - jump to reach player's platform
+                    const playerAbove = dy < -40; // Player at least 40px above
+                    const horizontallyClose = Math.abs(dx) < 200; // Within 5 tiles
+
+                    if (playerAbove && horizontallyClose) {
+                        this.speedY = -this.jumpForce;
+                        this.jumpCooldown = 90; // Longer cooldown to prevent spam
+                        this.grounded = false;
+                        console.log(`🦘 Smart jump to player! dy=${dy.toFixed(0)}, dx=${dx.toFixed(0)}`);
                     }
 
-                    // Jump logic fallback
-                    if (this.canJump && this.grounded && this.jumpCooldown <= 0) {
-                        if (dy < -30 && Math.abs(dx) < 300) {
+                    // CASE 2: Stuck at wall for a while - try to jump over
+                    else if (wasBlockedByWall) {
+                        this.stuckAtWallTimer = (this.stuckAtWallTimer || 0) + deltaTime;
+
+                        // Only jump after being stuck for ~1.5 seconds
+                        if (this.stuckAtWallTimer > 90) {
                             this.speedY = -this.jumpForce;
-                            this.jumpCooldown = 60;
+                            this.jumpCooldown = 120;
                             this.grounded = false;
-                        } else if (wasBlockedByWall && Math.abs(dx) > 30) {
-                            this.speedY = -this.jumpForce;
-                            this.jumpCooldown = 45;
-                            this.grounded = false;
-                            this.speedX = dx > 0 ? this.speed * 1.2 : -this.speed * 1.2;
+                            this.stuckAtWallTimer = 0;
+                            // Reverse direction after wall jump
+                            this.speedX = -this.speedX * 1.2;
+                            console.log(`🧱 Wall escape jump after being stuck`);
                         }
+                    } else {
+                        this.stuckAtWallTimer = 0;
                     }
+                }
+
+                // Debug log occasionally
+                if (Math.random() < 0.002) {
+                    console.log(`🔍 Chaser: dist=${distToPlayer.toFixed(0)}, dx=${dx.toFixed(0)}, dy=${dy.toFixed(0)}, grounded=${this.grounded}`);
                 }
             } else if (!this.isChaser) {
                 // === PATROL BEHAVIOR (original simple AI) ===
