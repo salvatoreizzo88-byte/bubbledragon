@@ -63,12 +63,18 @@ export default class Coin extends Entity {
             this.game.player.hasCoinMagnet &&
             this._isInMagnetRange;
 
+        // If being attracted by magnet, lift coin off ground
+        if (isBeingAttracted && this.grounded) {
+            this.grounded = false; // "Unstick" from platform
+        }
+
         if (!this.grounded && !isBeingAttracted) {
             this.speedY += this.gravity * deltaTime;
-        } else if (this.grounded) {
+        } else if (this.grounded && !isBeingAttracted) {
             this.speedY = 0;
             this.speedX *= 0.9; // Friction
         }
+        // When attracted: don't reset speedY, let magnet control it
 
         // Pulse animation
         this.pulseTimer += 0.1;
