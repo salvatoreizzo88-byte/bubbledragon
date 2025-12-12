@@ -1,8 +1,9 @@
 import Entity from './Entity.js';
 import { SimpleAnimation } from './SpriteAnimation.js';
+import GameConfig from './GameConfig.js';
 
 export default class Enemy extends Entity {
-    constructor(game, x, y, speedMultiplier = 1.0) {
+    constructor(game, x, y, speedMultiplier = 1.0, levelIndex = 0) {
         super(game, x, y, 32, 32);
         this.baseSpeed = 1.2;
         this.speed = this.baseSpeed * speedMultiplier;
@@ -14,6 +15,16 @@ export default class Enemy extends Entity {
         this.trappedTimer = 0;
         this.trappedDuration = 300; // 5 seconds
         this.bubbleRef = null; // Reference to the bubble trapping it
+
+        // === ADVANCED AI SYSTEM (based on level) ===
+        this.levelIndex = levelIndex;
+        this.canJump = GameConfig.levels.canJump(levelIndex);
+        this.chaseChance = GameConfig.levels.getChaseChance(levelIndex);
+        this.jumpForce = GameConfig.levels.getJumpForce(levelIndex);
+        this.isChaser = Math.random() < this.chaseChance; // Decide once if this enemy chases
+        this.grounded = false;
+        this.jumpCooldown = 0;
+        this.chaseUpdateTimer = 0; // Timer to update chase direction
 
         // Stuck detection - teleport if enemy can't reach player for too long
         this.stuckTimer = 0;
@@ -62,16 +73,58 @@ export default class Enemy extends Entity {
 
     update(deltaTime) {
         if (!this.trapped) {
-            // Patrol Logic
-            // If hitting wall, turn around
-            // This is handled by collision check in Game/Level, but we need to react to speedX becoming 0
+            // === ADVANCED AI LOGIC ===
+            const player = this.game.player;
 
-            if (this.speedX === 0) {
-                // ...
-            }
-
+            // Update facing based on movement
             if (this.speedX > 0) this.facing = -1;
             if (this.speedX < 0) this.facing = 1;
+
+            // Decrease cooldowns
+            if (this.jumpCooldown > 0) this.jumpCooldown -= deltaTime;
+            this.chaseUpdateTimer -= deltaTime;
+
+            // Check if grounded (speedY was reset to 0 meaning we hit floor)
+            this.grounded = this.speedY === 0;
+
+            // === CHASER BEHAVIOR ===
+            if (this.isChaser && player && this.chaseUpdateTimer <= 0) {
+                this.chaseUpdateTimer = 30; // Update direction every 0.5 seconds
+
+                const dx = player.x - this.x;
+                const dy = player.y - this.y;
+
+                // Move towards player horizontally
+                if (Math.abs(dx) > 20) { // Dead zone to prevent jittering
+                    this.speedX = dx > 0 ? this.speed : -this.speed;
+                }
+
+                // Jump if player is above and we can jump
+                if (this.canJump && this.grounded && this.jumpCooldown <= 0) {
+                    // Jump if player is above us (at least 50px higher)
+                    if (dy < -50 && Math.abs(dx) < 200) {
+                        this.speedY = -this.jumpForce;
+                        this.jumpCooldown = 90; // 1.5 second cooldown between jumps
+                        this.grounded = false;
+                    }
+                    // Jump if stuck against wall and trying to chase
+                    else if (this.speedX === 0 && Math.abs(dx) > 50) {
+                        this.speedY = -this.jumpForce * 0.8;
+                        this.jumpCooldown = 60;
+                        this.grounded = false;
+                    }
+                }
+            } else if (!this.isChaser) {
+                // === PATROL BEHAVIOR (original simple AI) ===
+                // Turn around if hitting wall
+                if (this.speedX === 0) {
+                    if (this.facing === -1) {
+                        this.speedX = -this.speed;
+                    } else {
+                        this.speedX = this.speed;
+                    }
+                }
+            }
 
             // Apply Physics
             this.speedY += this.gravity * deltaTime;
@@ -83,20 +136,8 @@ export default class Enemy extends Entity {
             // Check if stuck in inaccessible area (not moving much)
             this.checkStuckInArea(deltaTime);
 
-            // Simple AI: Turn around if hitting wall (checked in Game loop via collision side effect)
-            // For now, let's just make them bounce off walls if speedX is 0
-            // Simple AI: Turn around if hitting wall
+            // Turn around if hitting wall (for all enemies)
             if (this.speedX === 0) {
-                // Collision system stopped us. Flip direction.
-                // We rely on 'facing' property which tracks visual direction.
-                // Inverted logic: if facing -1 (Right), we were moving Right, so flip to Left.
-                // Wait, facing is inverted logic: 
-                // speed > 0 -> facing -1
-                // speed < 0 -> facing 1
-
-                // So if facing is -1, we want to go Left (speed < 0)
-                // If facing is 1, we want to go Right (speed > 0)
-
                 if (this.facing === -1) {
                     this.speedX = -this.speed;
                 } else {

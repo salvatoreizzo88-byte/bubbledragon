@@ -184,11 +184,12 @@ export default class Game {
         // Spawn enemies based on level - use Hook difficulty curve from GameConfig
         const enemyCount = GameConfig.levels.getEnemyCount(this.levelIndex);
         const speedMultiplier = GameConfig.levels.getSpeedMultiplier(this.levelIndex);
-        console.log(`📊 Level ${this.levelIndex + 1}: ${enemyCount} enemies at ${speedMultiplier}x speed`);
+        const chaseChance = GameConfig.levels.getChaseChance(this.levelIndex);
+        console.log(`📊 Level ${this.levelIndex + 1}: ${enemyCount} enemies at ${speedMultiplier}x speed, ${Math.round(chaseChance * 100)}% chase chance`);
 
         for (let i = 0; i < enemyCount; i++) {
             const spawnPos = this.level.getRandomSpawnPosition();
-            this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y, speedMultiplier));
+            this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y, speedMultiplier, this.levelIndex));
         }
     }
 

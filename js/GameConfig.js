@@ -67,6 +67,31 @@ const GameConfig = {
             if (level <= 70) return 1.4;   // Very difficult: much faster
             if (level <= 85) return 1.5;   // Hardcore: very fast
             return 1.6;                     // Expert: extreme speed
+        },
+
+        // Can enemies jump at this level?
+        canJump: function (levelIndex) {
+            const level = levelIndex + 1;
+            return level > 10; // Enemies can jump after level 10
+        },
+
+        // Chance that enemy will chase player (0-1)
+        getChaseChance: function (levelIndex) {
+            const level = levelIndex + 1;
+            if (level <= 10) return 0;     // Patrol only - no chasing
+            if (level <= 20) return 0.3;   // 30% chance to chase
+            if (level <= 40) return 0.6;   // 60% chance to chase
+            if (level <= 60) return 0.8;   // 80% chance to chase
+            return 1.0;                     // Always chase (61+)
+        },
+
+        // Jump force for enemies (if can jump)
+        getJumpForce: function (levelIndex) {
+            const level = levelIndex + 1;
+            if (level <= 20) return 6;     // Weak jumps
+            if (level <= 40) return 8;     // Normal jumps
+            if (level <= 60) return 9;     // Strong jumps
+            return 10;                      // Very strong jumps (like player)
         }
     },
 
