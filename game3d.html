@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Bubble Bobble 3D - Prototipo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a0a2e;
+        }
+
+        #game-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            touch-action: none;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-family: 'Arial', sans-serif;
+            z-index: 100;
+        }
+
+        #ui-overlay h1 {
+            font-size: 24px;
+            color: #ff00de;
+            text-shadow: 0 0 10px #ff00de;
+            margin-bottom: 10px;
+        }
+
+        #ui-overlay p {
+            font-size: 14px;
+            color: #aaa;
+            margin: 5px 0;
+        }
+
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .control-btn:active {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        #shoot-btn {
+            position: absolute;
+            bottom: 100px;
+            right: 30px;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #0066ff);
+            border: 3px solid white;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            z-index: 100;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="game-canvas"></canvas>
+
+    <div id="ui-overlay">
+        <h1>🐉 Bubble Bobble 3D</h1>
+        <p>WASD o Frecce per muoverti</p>
+        <p>Spazio per sparare bolle</p>
+        <p id="fps">FPS: --</p>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="controls">
+        <button class="control-btn" id="btn-left">◀</button>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+            <button class="control-btn" id="btn-up">▲</button>
+            <button class="control-btn" id="btn-down">▼</button>
+        </div>
+        <button class="control-btn" id="btn-right">▶</button>
+    </div>
+
+    <button id="shoot-btn">🫧<br>BOLLA</button>
+
+    <!-- Babylon.js -->
+    <script src="js/lib/babylon.min.js"></script>
+
+    <!-- Game -->
+    <script type="module">
+        import Game3D from './js/Game3D.js';
+
+        // Wait for DOM
+        window.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('game-canvas');
+            const game = new Game3D(canvas, null);
+
+            // FPS counter
+            setInterval(() => {
+                document.getElementById('fps').textContent =
+                    `FPS: ${game.engine.getFps().toFixed(0)}`;
+            }, 500);
+
+            // Spacebar to shoot
+            window.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    game.shootBubble();
+                }
+            });
+
+            // Mobile touch controls
+            const setupTouchControl = (btnId, key) => {
+                const btn = document.getElementById(btnId);
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    game.keys[key] = true;
+                });
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    game.keys[key] = false;
+                });
+            };
+
+            setupTouchControl('btn-up', 'ArrowUp');
+            setupTouchControl('btn-down', 'ArrowDown');
+            setupTouchControl('btn-left', 'ArrowLeft');
+            setupTouchControl('btn-right', 'ArrowRight');
+
+            document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                game.shootBubble();
+            });
+
+            console.log('🎮 Bubble Bobble 3D Prototype Ready!');
+        });
+    </script>
+</body>
+
+</html>
