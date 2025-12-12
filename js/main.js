@@ -1413,7 +1413,8 @@ window.addEventListener('load', () => {
             Database.submitScore(
                 gameState.username,
                 gameState.playerLevel || 1,
-                gameState.maxLevel || 1
+                gameState.maxLevel || 1,
+                gameState.playerXP || 0  // XP for secondary ranking
             );
         }
 
@@ -1496,7 +1497,8 @@ window.addEventListener('load', () => {
                 Database.submitScore(
                     gameState.username,
                     gameState.playerLevel, // Dragon level for ranking
-                    gameState.maxLevel // Max game level reached
+                    gameState.maxLevel, // Max game level reached
+                    gameState.playerXP || 0 // XP for secondary ranking
                 );
             }
 

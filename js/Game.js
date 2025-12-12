@@ -175,7 +175,8 @@ export default class Game {
                         window.Database.submitScore(
                             this.gameState.username,
                             this.gameState.playerLevel, // Dragon level for ranking
-                            this.levelIndex // Max game level reached
+                            this.levelIndex, // Max game level reached
+                            this.gameState.playerXP || 0 // XP for secondary ranking
                         );
                     }
                 }

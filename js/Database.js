@@ -390,7 +390,7 @@ export default class Database {
 
     // === LEADERBOARD METHODS ===
 
-    static async submitScore(username, score, maxLevel) {
+    static async submitScore(username, score, maxLevel, playerXP = 0) {
         if (!db) {
             console.error('Database non inizializzato per classifica');
             return;
@@ -401,28 +401,32 @@ export default class Database {
         }
 
         try {
-            console.log('Invio punteggio a Firebase...', { username, score, maxLevel });
+            console.log('Invio punteggio a Firebase...', { username, score, maxLevel, playerXP });
             const docRef = db.collection("leaderboard").doc(username.toLowerCase());
             const existing = await docRef.get();
 
-            // Only update if new level is higher
+            // Only update if new level is higher OR same level but more XP
             if (existing.exists) {
                 const data = existing.data();
                 const existingLevel = data.livelloDraghetto || data.livello || 1;
-                if (existingLevel >= score) {
-                    console.log("Livello esistente più alto, non aggiorno");
+                const existingXP = data.xpTotali || 0;
+
+                // Skip if existing is better (higher level, or same level with more XP)
+                if (existingLevel > score || (existingLevel === score && existingXP >= playerXP)) {
+                    console.log("Punteggio esistente migliore, non aggiorno");
                     return;
                 }
             }
 
             await docRef.set({
                 nomeUtente: username,
-                livelloDraghetto: score, // Now stores dragon level, not XP
+                livelloDraghetto: score, // Dragon level for primary ranking
+                xpTotali: playerXP,      // Total XP for secondary ranking
                 livelloMax: maxLevel,
                 aggiornatoIl: firebase.firestore.FieldValue.serverTimestamp()
             });
 
-            console.log(`Classifica aggiornata: ${username} - Livello ${score}`);
+            console.log(`Classifica aggiornata: ${username} - Livello ${score} - XP ${playerXP}`);
         } catch (error) {
             console.error("Errore invio punteggio:", error.message, error);
         }
@@ -432,8 +436,10 @@ export default class Database {
         if (!db) return [];
 
         try {
+            // Order by dragon level (primary) and XP (secondary)
             const snapshot = await db.collection("leaderboard")
                 .orderBy("livelloDraghetto", "desc")
+                .orderBy("xpTotali", "desc")
                 .limit(limit)
                 .get();
 
@@ -444,6 +450,7 @@ export default class Database {
                     id: doc.id,
                     username: data.nomeUtente || data.username,
                     dragonLevel: data.livelloDraghetto || data.livello || 1,
+                    playerXP: data.xpTotali || 0,
                     maxLevel: data.livelloMax || data.maxLevel || 1
                 });
             });
