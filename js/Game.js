@@ -158,27 +158,60 @@ export default class Game {
 
                 this.levelIndex++;
                 if (this.player.lives <= 0) {
-                    this.gameOver = true;
-                    this.audioManager.playSound('gameover');
-                    document.getElementById('game-over-screen').style.display = 'flex';
-                    document.getElementById('session-coins').innerText = this.sessionCoins;
-                    // Save coins to total
-                    this.gameState.addCoins(this.sessionCoins);
+                    // Show continue screen instead of immediate game over
+                    this.paused = true;
+                    this.showingContinue = true;
 
-                    // Submit to leaderboard - use dragon level (XP-based) for ranking
-                    if (this.gameState && window.Database) {
-                        console.log('Submitting to leaderboard:', {
-                            username: this.gameState.username,
-                            dragonLevel: this.gameState.playerLevel,
-                            maxGameLevel: this.levelIndex
-                        });
-                        window.Database.submitScore(
-                            this.gameState.username,
-                            this.gameState.playerLevel, // Dragon level for ranking
-                            this.levelIndex, // Max game level reached
-                            this.gameState.playerXP || 0 // XP for secondary ranking
-                        );
+                    // Update continue screen with current dragocoin count and ads remaining
+                    const continueScreen = document.getElementById('continue-screen');
+                    const dragocoinCount = document.getElementById('continue-dragocoin-count');
+                    const adsRemaining = document.getElementById('ads-remaining');
+                    const adBtn = document.getElementById('continue-ad-btn');
+                    const dragocoinBtn = document.getElementById('continue-dragocoin-btn');
+
+                    if (dragocoinCount) {
+                        dragocoinCount.innerText = this.gameState.dragocoin || 0;
                     }
+
+                    // Check daily ads limit (stored in gameState)
+                    const today = new Date().toDateString();
+                    if (this.gameState.lastAdDate !== today) {
+                        this.gameState.lastAdDate = today;
+                        this.gameState.dailyAdsUsed = 0;
+                    }
+                    const adsLeft = 5 - (this.gameState.dailyAdsUsed || 0);
+
+                    if (adsRemaining) {
+                        adsRemaining.innerText = adsLeft;
+                    }
+
+                    // Disable ad button if no ads left
+                    if (adBtn && adsLeft <= 0) {
+                        adBtn.disabled = true;
+                        adBtn.style.opacity = '0.5';
+                        adBtn.style.cursor = 'not-allowed';
+                    } else if (adBtn) {
+                        adBtn.disabled = false;
+                        adBtn.style.opacity = '1';
+                        adBtn.style.cursor = 'pointer';
+                    }
+
+                    // Disable dragocoin button if not enough
+                    if (dragocoinBtn && (this.gameState.dragocoin || 0) < 5) {
+                        dragocoinBtn.disabled = true;
+                        dragocoinBtn.style.opacity = '0.5';
+                        dragocoinBtn.style.cursor = 'not-allowed';
+                    } else if (dragocoinBtn) {
+                        dragocoinBtn.disabled = false;
+                        dragocoinBtn.style.opacity = '1';
+                        dragocoinBtn.style.cursor = 'pointer';
+                    }
+
+                    if (continueScreen) {
+                        continueScreen.style.display = 'flex';
+                    }
+
+                    this.audioManager.playSound('gameover');
                 }
 
                 // Check achievements for this level completion

@@ -783,6 +783,45 @@
             </div>
         </div>
 
+        <!-- Continue Screen - Appare quando si perdono tutte le vite -->
+        <div id="continue-screen"
+            style="display: none; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; background: rgba(0, 0, 0, 0.95); width: 100%; height: 100%; z-index: 35; pointer-events: auto;">
+
+            <h1
+                style="color: #ff4444; font-size: 36px; margin-bottom: 10px; text-shadow: 2px 2px #000; font-family: 'Press Start 2P', cursive;">
+                💀 HAI PERSO!
+            </h1>
+
+            <p style="color: white; font-size: 16px; margin-bottom: 30px; font-family: 'Press Start 2P', cursive;">
+                Vuoi continuare?
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 15px; width: 80%; max-width: 300px;">
+
+                <!-- Opzione 1: Pubblicità (Gratis) -->
+                <button id="continue-ad-btn" class="menu-btn"
+                    style="background: linear-gradient(135deg, #4CAF50, #2E7D32); font-size: 12px; padding: 15px;">
+                    🎬 GUARDA VIDEO
+                    <span style="display: block; font-size: 10px; color: #aaffaa; margin-top: 5px;">GRATIS - <span
+                            id="ads-remaining">5</span>/5 rimasti oggi</span>
+                </button>
+
+                <!-- Opzione 2: Dragocoin -->
+                <button id="continue-dragocoin-btn" class="menu-btn"
+                    style="background: linear-gradient(135deg, #9b59b6, #8e44ad); font-size: 12px; padding: 15px;">
+                    💎 USA 5 DRAGOCOIN
+                    <span style="display: block; font-size: 10px; color: #ddaaff; margin-top: 5px;">Hai: <span
+                            id="continue-dragocoin-count">0</span> Dragocoin</span>
+                </button>
+
+                <!-- Opzione 3: Game Over -->
+                <button id="continue-gameover-btn" class="menu-btn"
+                    style="background: linear-gradient(135deg, #666, #444); font-size: 12px; padding: 15px; margin-top: 10px;">
+                    ❌ NO, FINE PARTITA
+                </button>
+            </div>
+        </div>
+
         <div id="game-over-screen"
             style="display: none; flex-direction: column; align-items: center; justify-content: center; position: absolute; top: 0; left: 0; background: rgba(0, 0, 0, 0.9); width: 100%; height: 100%; z-index: 30; pointer-events: auto;">
             <h1

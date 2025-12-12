@@ -1459,6 +1459,98 @@ window.addEventListener('load', () => {
         });
     }
 
+    // === CONTINUE SCREEN BUTTONS ===
+    const continueScreen = document.getElementById('continue-screen');
+    const continueAdBtn = document.getElementById('continue-ad-btn');
+    const continueDragocoinBtn = document.getElementById('continue-dragocoin-btn');
+    const continueGameoverBtn = document.getElementById('continue-gameover-btn');
+
+    // Function to handle continue and restart level
+    function handleContinue() {
+        if (continueScreen) continueScreen.style.display = 'none';
+        if (game) {
+            game.player.lives = 1;
+            game.showingContinue = false;
+            game.paused = false;
+            game.restartLevel();
+        }
+    }
+
+    // Function to handle actual game over
+    function handleGameOver() {
+        if (continueScreen) continueScreen.style.display = 'none';
+        if (game) {
+            game.gameOver = true;
+            game.showingContinue = false;
+
+            // Show game over screen
+            document.getElementById('game-over-screen').style.display = 'flex';
+            document.getElementById('session-coins').innerText = game.sessionCoins || 0;
+
+            // Save coins to total
+            if (gameState) {
+                gameState.addCoins(game.sessionCoins || 0);
+            }
+
+            // Submit to leaderboard
+            if (gameState && window.Database) {
+                window.Database.submitScore(
+                    gameState.username,
+                    gameState.playerLevel,
+                    game.levelIndex,
+                    gameState.playerXP || 0
+                );
+            }
+        }
+    }
+
+    // Continue with Ad (placeholder for AdMob)
+    if (continueAdBtn) {
+        continueAdBtn.addEventListener('click', () => {
+            // Check if ads remaining
+            const adsLeft = 5 - (gameState.dailyAdsUsed || 0);
+            if (adsLeft <= 0) {
+                alert('Hai usato tutti i video gratuiti per oggi!');
+                return;
+            }
+
+            // Increment daily ads counter
+            gameState.dailyAdsUsed = (gameState.dailyAdsUsed || 0) + 1;
+            gameState.save();
+
+            // TODO: Show actual rewarded ad here (AdMob integration after publication)
+            // For now, just continue
+            console.log('📺 Rewarded ad placeholder - Continue granted');
+
+            handleContinue();
+        });
+    }
+
+    // Continue with Dragocoin
+    if (continueDragocoinBtn) {
+        continueDragocoinBtn.addEventListener('click', () => {
+            if ((gameState.dragocoin || 0) < 5) {
+                alert('Non hai abbastanza Dragocoin!');
+                return;
+            }
+
+            // Spend dragocoin
+            gameState.spendDragocoin(5);
+            gameState.save();
+
+            console.log('💎 Spent 5 Dragocoin to continue');
+
+            handleContinue();
+        });
+    }
+
+    // Confirm Game Over
+    if (continueGameoverBtn) {
+        continueGameoverBtn.addEventListener('click', () => {
+            handleGameOver();
+        });
+    }
+
     function animate(timeStamp) {
         const deltaTime = timeStamp - lastTime;
         lastTime = timeStamp;
