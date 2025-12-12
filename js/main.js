@@ -6,14 +6,61 @@ import Database from './Database.js';
 import AudioManager from './AudioManager.js';
 import AchievementManager from './AchievementManager.js';
 
+// === LOADING SCREEN CONTROLLER ===
+const loadingScreen = {
+    element: null,
+    bar: null,
+    text: null,
+    tip: null,
+    progress: 0,
+    tips: [
+        "💡 TIP: Raccogli la frutta per guadagnare XP!",
+        "💡 TIP: Intrappolati i nemici nelle bolle per sconfiggerli!",
+        "💡 TIP: Più livelli completi, più potenziamenti sblocchi!",
+        "💡 TIP: I dragocoin ti permettono di potenziare il draghetto!",
+        "💡 TIP: Controlla gli obiettivi per ottenere ricompense!",
+        "💡 TIP: Il tuo livello draghetto determina la tua posizione in classifica!"
+    ],
+
+    init() {
+        this.element = document.getElementById('loading-screen');
+        this.bar = document.getElementById('loading-bar');
+        this.text = document.getElementById('loading-text');
+        this.tip = document.getElementById('loading-tip');
+
+        // Set random tip
+        if (this.tip) {
+            this.tip.textContent = this.tips[Math.floor(Math.random() * this.tips.length)];
+        }
+    },
+
+    setProgress(percent, message) {
+        this.progress = Math.min(100, percent);
+        if (this.bar) this.bar.style.width = `${this.progress}%`;
+        if (this.text && message) this.text.textContent = message;
+    },
+
+    hide() {
+        if (this.element) {
+            this.element.style.opacity = '0';
+            this.element.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => {
+                this.element.style.display = 'none';
+            }, 500);
+        }
+    }
+};
+
 window.addEventListener('load', () => {
+    // Initialize loading screen
+    loadingScreen.init();
+    loadingScreen.setProgress(10, 'Inizializzazione...');
+
     // Init Database
-    // Wait slightly for Firebase scripts to load if strictly necessary, 
-    // but usually 'defer' + 'load' event is enough.
-    // However, since we are module, we might run before defer scripts? 
-    // Actually modules are deferred by default. 
-    // Let's wrap init in a small timeout or check.
-    setTimeout(() => Database.init(), 100);
+    setTimeout(() => {
+        loadingScreen.setProgress(30, 'Connessione al server...');
+        Database.init();
+    }, 100);
     window.Database = Database; // Expose for Game.js leaderboard access
 
     // Game Init
@@ -78,6 +125,7 @@ window.addEventListener('load', () => {
     // === AUTH STATE PERSISTENCE ===
     // Check if user is already logged in when app opens
     setTimeout(() => {
+        loadingScreen.setProgress(50, 'Controllo autenticazione...');
         Database.onAuthStateChanged(async (user) => {
             if (user) {
                 // User is logged in - restore session
@@ -120,6 +168,7 @@ window.addEventListener('load', () => {
 
                 // Update UI
                 isUserDataLoaded = true;
+                loadingScreen.setProgress(90, 'Preparazione interfaccia...');
                 updateDisplay();
                 updatePlayerLevelDisplay();
 
@@ -127,13 +176,22 @@ window.addEventListener('load', () => {
                 let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
                 if (latestLevel < 0) latestLevel = 0;
                 renderPreview(latestLevel);
+
+                // Hide loading screen
+                loadingScreen.setProgress(100, 'Pronto!');
+                setTimeout(() => loadingScreen.hide(), 300);
                 // Daily reward is now claimed manually from Objectives section
                 // No automatic popup
             } else {
                 // User is not logged in - guest mode
                 console.log("Nessun utente loggato - modalità ospite");
                 isUserDataLoaded = true;
+                loadingScreen.setProgress(90, 'Preparazione interfaccia...');
                 updateDisplay();
+
+                // Hide loading screen
+                loadingScreen.setProgress(100, 'Pronto!');
+                setTimeout(() => loadingScreen.hide(), 300);
             }
         });
     }, 200); // Wait for Database.init() to complete
