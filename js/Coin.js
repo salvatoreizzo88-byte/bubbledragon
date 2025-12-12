@@ -19,6 +19,21 @@ export default class Coin extends Entity {
     }
 
     update(deltaTime) {
+        // === COIN MAGNET EFFECT ===
+        if (this.game && this.game.player && this.game.player.hasCoinMagnet) {
+            const player = this.game.player;
+            const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
+            const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < (player.coinMagnetRadius || 150)) {
+                // Attract towards player
+                const magnetStrength = 0.3;
+                this.speedX += (dx / distance) * magnetStrength * deltaTime;
+                this.speedY += (dy / distance) * magnetStrength * deltaTime;
+            }
+        }
+
         if (!this.grounded) {
             this.speedY += this.gravity * deltaTime;
         } else {

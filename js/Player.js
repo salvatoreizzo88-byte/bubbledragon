@@ -120,25 +120,33 @@ export default class Player extends Entity {
         const dragonBonuses = gameState.getLevelBonuses();
         // dragonBonuses contains: speedBonus, bubbleRangeBonus, jumpBonus, bubbleDurationBonus
 
-        // Calculate speed with achievements, shop bonuses, and dragon level bonus
+        // === SPEED CALCULATION ===
         let speedMultiplier = 1 + (rewards.speed / 100);
         if (gameState.hasItem('speed_boost')) {
-            speedMultiplier += 0.5; // +50% from shop
+            speedMultiplier += 0.5; // +50% from shop (coins)
+        }
+        // PREMIUM: mega_speed adds +100% velocity
+        if (gameState.hasItem('mega_speed')) {
+            speedMultiplier += 1.0; // +100% from premium shop
         }
         this.speed = this.baseSpeed * speedMultiplier * dragonBonuses.speedBonus;
 
-        // Calculate jump with achievement and dragon level bonuses
+        // === JUMP CALCULATION ===
         let jumpMultiplier = 1 + (rewards.jump / 100);
+        // PREMIUM: super_jump adds +100% jump height
+        if (gameState.hasItem('super_jump')) {
+            jumpMultiplier += 1.0; // +100% from premium shop
+        }
         this.jumpForce = 10 * jumpMultiplier * dragonBonuses.jumpBonus; // Base jump is 10
 
-        // Calculate shoot interval with achievements and shop
+        // === SHOOT SPEED CALCULATION ===
         let shootMultiplier = 1 + (rewards.shootSpeed / 100);
         if (gameState.hasItem('rapid_fire')) {
             shootMultiplier += 0.5; // +50% faster
         }
         this.shootInterval = this.baseShootInterval / shootMultiplier;
 
-        // Calculate bubble range with achievements, shop, and dragon level bonus
+        // === BUBBLE RANGE CALCULATION ===
         let bubbleMultiplier = 1 + (rewards.bubbleRange / 100);
         if (gameState.hasItem('long_range')) {
             bubbleMultiplier += 0.5; // +50% from shop
@@ -148,13 +156,40 @@ export default class Player extends Entity {
         // Bubble duration bonus (affects how long bubbles last before popping)
         this.bubbleDurationBonus = dragonBonuses.bubbleDurationBonus;
 
-        // Double Jump from shop
-        this.hasDoubleJump = gameState.hasItem('double_jump');
+        // PREMIUM: bubble_master makes bubbles 2x bigger
+        this.bubbleSizeMultiplier = gameState.hasItem('bubble_master') ? 2.0 : 1.0;
 
-        // Shield from shop
+        // === JUMP SYSTEM (Double/Triple Jump) ===
+        this.hasDoubleJump = gameState.hasItem('double_jump');
+        // PREMIUM: triple_jump allows 3 jumps in air
+        this.hasTripleJump = gameState.hasItem('triple_jump');
+        // Set max jumps based on powerups
+        if (this.hasTripleJump) {
+            this.maxJumps = 3;
+        } else if (this.hasDoubleJump) {
+            this.maxJumps = 2;
+        } else {
+            this.maxJumps = 1;
+        }
+        this.jumpsRemaining = 0; // Reset, will be set when grounded
+
+        // === SHIELD ===
         if (gameState.hasItem('shield') && !this.hasShield) {
             this.hasShield = true;
             this.shieldActive = true;
+        }
+
+        // === PREMIUM: coin_magnet - attracts nearby coins ===
+        this.hasCoinMagnet = gameState.hasItem('coin_magnet');
+        this.coinMagnetRadius = 150; // Attract coins within 150px
+
+        // === PREMIUM: xp_boost - +50% XP gains ===
+        this.xpBoostMultiplier = gameState.hasItem('xp_boost') ? 1.5 : 1.0;
+
+        // === PREMIUM: immortal_start - 10 seconds invincibility at start ===
+        if (gameState.hasItem('immortal_start') && !this.immortalStartApplied) {
+            this.invulnerableTimer = 600; // 10 seconds at 60fps
+            this.immortalStartApplied = true;
         }
 
         // Store coin bonus for use when collecting coins
@@ -211,27 +246,28 @@ export default class Player extends Entity {
             if (this.bubbleDurationBonus) {
                 bubble.maxLifeTime = 300 * this.bubbleDurationBonus;
             }
+            // PREMIUM: bubble_master - make bubbles 2x bigger
+            if (this.bubbleSizeMultiplier && this.bubbleSizeMultiplier > 1) {
+                bubble.width *= this.bubbleSizeMultiplier;
+                bubble.height *= this.bubbleSizeMultiplier;
+            }
             this.game.addBubble(bubble);
             this.game.audioManager.playSound('shoot');
             this.shootTimer = this.shootInterval;
         }
 
-        // Jumping
-        // Also support 'ArrowUp' as jump or button A
+        // Jumping - supports normal, double, and triple jump based on maxJumps
         if (input['ArrowUp'] && !this.jumpKeyHeld) {
             if (this.grounded) {
-                // Normal jump
+                // Reset jumps when on ground
+                this.jumpsRemaining = (this.maxJumps || 1) - 1; // First jump is free
                 this.speedY = -this.jumpForce;
                 this.grounded = false;
                 this.game.audioManager.playSound('jump');
-                // Enable double jump if powerup owned
-                if (this.hasDoubleJump) {
-                    this.canDoubleJump = true;
-                }
-            } else if (this.canDoubleJump) {
-                // Double jump in air
+            } else if (this.jumpsRemaining > 0) {
+                // Air jump (double/triple)
+                this.jumpsRemaining--;
                 this.speedY = -this.jumpForce * 0.9; // Slightly weaker
-                this.canDoubleJump = false;
                 this.game.audioManager.playSound('jump');
             }
             this.jumpKeyHeld = true;
