@@ -1,12 +1,13 @@
 /**
  * Pathfinding module using EasyStar.js for enemy AI navigation
  * Creates a walkable grid from the level map and calculates paths
+ * NOTE: EasyStar.js must be loaded via script tag in index.html BEFORE this module
  */
-import EasyStar from 'easystarjs';
 
 export default class Pathfinding {
     constructor(game) {
         this.game = game;
+        // EasyStar is loaded globally from js/lib/easystar.min.js
         this.easystar = new EasyStar.js();
         this.grid = [];
         this.tileSize = 40;
