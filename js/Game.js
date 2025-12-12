@@ -68,12 +68,10 @@ export default class Game {
             this.gameState.incrementStat('gamesPlayed');
         }
 
-        this.startLevel();
-
-        // Reset lives to 3 and apply extra lives from achievements
+        // Reset lives to 3 BEFORE startLevel (which calls applyPowerups)
         this.player.lives = 3;
 
-        // Reset one-time-per-game flags
+        // Reset one-time-per-game flags BEFORE startLevel
         this.player.shieldAppliedThisGame = false;
         this.player.immortalStartApplied = false;
 
@@ -81,6 +79,9 @@ export default class Game {
             this.player.lives += this.player.achievementExtraLives;
             console.log(`+${this.player.achievementExtraLives} vite extra da achievement!`);
         }
+
+        // Now start the level (which calls applyPowerups with correct flags)
+        this.startLevel();
     }
 
     togglePause() {
@@ -542,6 +543,12 @@ export default class Game {
                     console.log("Scudo consumato!");
                     break; // Exit loop after shield consumed
                 } else {
+                    // Prevent going below 0
+                    if (this.player.lives <= 0) {
+                        this.showContinueScreen();
+                        return;
+                    }
+
                     this.player.lives--;
                     console.log("💀 Vita persa! Vite rimanenti:", this.player.lives);
                     this.deathsThisRun++;
