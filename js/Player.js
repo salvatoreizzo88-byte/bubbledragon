@@ -178,7 +178,9 @@ export default class Player extends Entity {
         if (gameState.hasItem('shield') && !this.hasShield) {
             this.hasShield = true;
             this.shieldActive = true;
+            console.log("🛡️ Scudo shop attivato!");
         }
+        console.log("🛡️ Shield status - hasItem:", gameState.hasItem('shield'), "hasShield:", this.hasShield, "shieldActive:", this.shieldActive);
 
         // === PREMIUM: coin_magnet - attracts nearby coins ===
         this.hasCoinMagnet = gameState.hasItem('coin_magnet');
