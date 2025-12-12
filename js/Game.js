@@ -572,6 +572,9 @@ export default class Game {
                 }
             }
         }
+
+        // Update UI every frame to reflect current game state
+        this.updateUI();
     }
 
     draw(context) {
