@@ -84,8 +84,16 @@ export default class Enemy extends Entity {
             if (this.jumpCooldown > 0) this.jumpCooldown -= deltaTime;
             this.chaseUpdateTimer -= deltaTime;
 
-            // Check if grounded (speedY was reset to 0 meaning we hit floor)
-            this.grounded = this.speedY === 0;
+            // Save position before physics for grounded detection
+            const prevY = this.y;
+
+            // Apply Physics
+            this.speedY += this.gravity * deltaTime;
+            super.update(deltaTime);
+
+            // Check if grounded - if Y position didn't change much after gravity was applied, we're on ground
+            // This is more reliable than checking speedY === 0
+            this.grounded = Math.abs(this.y - prevY) < 0.5 && this.speedY >= 0;
 
             // === CHASER BEHAVIOR ===
             if (this.isChaser && player && this.chaseUpdateTimer <= 0) {
@@ -101,16 +109,17 @@ export default class Enemy extends Entity {
 
                 // Jump if player is above and we can jump
                 if (this.canJump && this.grounded && this.jumpCooldown <= 0) {
-                    // Jump if player is above us (at least 50px higher)
-                    if (dy < -50 && Math.abs(dx) < 200) {
+                    // Jump if player is above us (at least 30px higher)
+                    if (dy < -30 && Math.abs(dx) < 250) {
                         this.speedY = -this.jumpForce;
-                        this.jumpCooldown = 90; // 1.5 second cooldown between jumps
+                        this.jumpCooldown = 60; // 1 second cooldown between jumps
                         this.grounded = false;
+                        console.log(`🦘 Enemy jumped! dy=${dy.toFixed(0)}, jumpForce=${this.jumpForce}`);
                     }
                     // Jump if stuck against wall and trying to chase
                     else if (this.speedX === 0 && Math.abs(dx) > 50) {
-                        this.speedY = -this.jumpForce * 0.8;
-                        this.jumpCooldown = 60;
+                        this.speedY = -this.jumpForce * 0.7;
+                        this.jumpCooldown = 45;
                         this.grounded = false;
                     }
                 }
@@ -125,10 +134,6 @@ export default class Enemy extends Entity {
                     }
                 }
             }
-
-            // Apply Physics
-            this.speedY += this.gravity * deltaTime;
-            super.update(deltaTime);
 
             // Check if stuck inside a wall and fix it
             this.checkAndUnstuck();
