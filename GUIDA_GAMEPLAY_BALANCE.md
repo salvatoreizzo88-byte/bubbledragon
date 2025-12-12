@@ -94,37 +94,66 @@ trappedDuration: 420, // Era 300 (5s) → Ora 420 (7s)
 ### Come Funziona
 1. Player ha 3 vite normali
 2. Quando perde l'ultima vita, appare schermata "CONTINUE?"
-3. Se ha ≥15 monete → può continuare (perde 15 monete, torna a 1 vita)
-4. Se ha <15 monete → GAME OVER definitivo
+3. **Opzione 1:** Spendi 5 Dragocoin → riprendi con 1 vita
+4. **Opzione 2:** Guarda pubblicità → riprendi con 1 vita (GRATIS)
+5. Se rifiuta entrambe → GAME OVER definitivo
+
+### UI Schermata Continue
+```
+┌─────────────────────────────────────┐
+│         💀 HAI PERSO!               │
+│                                     │
+│     Vuoi continuare?                │
+│                                     │
+│  ┌─────────────┐ ┌─────────────┐   │
+│  │ 🎬 GUARDA   │ │ 💎 5        │   │
+│  │ PUBBLICITÀ  │ │ DRAGOCOIN   │   │
+│  │   (GRATIS)  │ │             │   │
+│  └─────────────┘ └─────────────┘   │
+│                                     │
+│       [ ❌ NO, GAME OVER ]          │
+└─────────────────────────────────────┘
+```
 
 ### Implementazione
 ```javascript
 // In Game.js, quando player.lives <= 0:
 if (this.player.lives <= 0) {
-    // Prima di game over, controlla se può continuare
-    if (this.gameState.coins >= 15) {
-        // Mostra schermata "CONTINUE? Costa 15 monete"
-        this.showContinueScreen();
-    } else {
-        // Non ha abbastanza monete = game over
-        this.gameOver = true;
-        document.getElementById('game-over-screen').style.display = 'flex';
+    // Mostra schermata continue con 2 opzioni
+    this.showContinueScreen();
+}
+
+// Opzione 1: Dragocoin
+continuewithDragocoin() {
+    if (this.gameState.dragocoin >= 5) {
+        this.gameState.spendDragocoin(5);
+        this.player.lives = 1;
+        this.restartLevel();
     }
 }
 
-// Funzione continue:
-continueGame() {
-    this.gameState.spendCoins(15);
-    this.player.lives = 1;
-    this.restartLevel();
+// Opzione 2: Pubblicità (placeholder - AdMob dopo pubblicazione)
+continueWithAd() {
+    // Mostra rewarded ad
+    showRewardedAd().then(() => {
+        this.player.lives = 1;
+        this.restartLevel();
+    });
+}
+
+// Opzione 3: Game Over
+confirmGameOver() {
+    this.gameOver = true;
+    document.getElementById('game-over-screen').style.display = 'flex';
 }
 ```
 
 ### Vantaggi
 - ✅ Mantiene la sfida del game over
-- ✅ Dà una seconda chance a chi ha giocato bene (ha monete)
-- ✅ Incentiva raccogliere monete durante il gioco
-- ✅ Non snatura il gameplay originale
+- ✅ Monetizza con pubblicità (gratis per utente)
+- ✅ Dà valore ai Dragocoin
+- ✅ Due opzioni = più scelta per l'utente
+- ✅ Non obbliga mai a pagare
 
 ---
 
