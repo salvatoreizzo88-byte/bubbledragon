@@ -34,12 +34,9 @@ export default class Database {
                 displayName: username
             });
 
-            // 3. Save Data to Firestore using USERNAME as document ID
-            // Document ID = username.toLowerCase() for consistency
-            const docId = username.toLowerCase();
-            await db.collection("users").doc(docId).set({
-                nomeUtente: username, // Original case
-                authUid: user.uid, // Link to Firebase Auth
+            // 3. Save Data to Firestore using UID as document ID
+            await db.collection("users").doc(user.uid).set({
+                username: username,
                 email: email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 ...initialData
@@ -59,15 +56,11 @@ export default class Database {
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
-            // Fetch User Data using displayName (username) as document ID
-            const username = user.displayName;
+            // Fetch User Data using UID as document ID
+            const doc = await db.collection("users").doc(user.uid).get();
             let userData = null;
-
-            if (username) {
-                const doc = await db.collection("users").doc(username.toLowerCase()).get();
-                if (doc.exists) {
-                    userData = doc.data();
-                }
+            if (doc.exists) {
+                userData = doc.data();
             }
 
             return { success: true, user: user, data: userData };
@@ -252,12 +245,14 @@ export default class Database {
     static async saveProgress(identifier, gameState) {
         if (!db || !identifier) return;
 
-        // ALWAYS use username as document ID (lowercase for consistency)
-        const docId = identifier.toLowerCase();
+        // Determine document ID: UID for authenticated users, username for guests
+        let docId = identifier;
+        if (this.auth && this.auth.currentUser) {
+            docId = this.auth.currentUser.uid; // Use UID for authenticated users
+        } else {
+            docId = identifier.toLowerCase(); // Use username for guests
+        }
         const targetDoc = db.collection("users").doc(docId);
-
-        // Get auth UID if logged in (to link document to authenticated user)
-        const authUid = (this.auth && this.auth.currentUser) ? this.auth.currentUser.uid : null;
 
         // === ANTI-CHEAT: Load existing data and validate ===
         let existingData = null;
@@ -294,9 +289,9 @@ export default class Database {
                 livelloVelocita: gameState.stats.speedLevel || 0
             };
 
-            // Build document data
-            const docData = {
-                nomeUtente: identifier, // Original case username
+            // Use set with merge to create document if it doesn't exist
+            await targetDoc.set({
+                nomeUtente: identifier,
                 monete: gameState.coins,
                 dragocoin: gameState.dragocoin || 0,
                 inventario: gameState.inventory,
@@ -309,15 +304,7 @@ export default class Database {
                 obiettiviSbloccati: gameState.unlockedAchievements || [],
                 tutorialCompletato: gameState.tutorialCompleted || false,
                 ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            // Add auth UID if user is authenticated (links document to Firebase Auth)
-            if (authUid) {
-                docData.authUid = authUid;
-            }
-
-            // Use set with merge to create document if it doesn't exist
-            await targetDoc.set(docData, { merge: true });
+            }, { merge: true });
         } catch (error) {
             console.error("Errore salvataggio progressi:", error);
         }
@@ -326,9 +313,14 @@ export default class Database {
     static async loadProgress(identifier) {
         if (!db || !identifier) return null;
 
-
-        // ALWAYS use username as document ID (lowercase for consistency)
-        const targetDoc = db.collection("users").doc(identifier.toLowerCase());
+        // Determine document ID: UID for authenticated users, username for guests
+        let docId = identifier;
+        if (this.auth && this.auth.currentUser) {
+            docId = this.auth.currentUser.uid; // Use UID for authenticated users
+        } else {
+            docId = identifier.toLowerCase(); // Use username for guests
+        }
+        const targetDoc = db.collection("users").doc(docId);
 
         try {
             const doc = await targetDoc.get();
