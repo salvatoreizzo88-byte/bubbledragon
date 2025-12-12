@@ -1444,9 +1444,23 @@ window.addEventListener('load', () => {
 
             gameStarted = false;
 
+            // SAVE ALL STATS (same as quit button)
+            if (gameState) {
+                gameState.save();
+            }
+
+            // Hide tutorial overlay if active (same as quit button)
+            if (game.tutorial) {
+                game.tutorial.reset();
+            }
+
+            // Reset game state (same as quit button)
+            game.resetGame();
+
             // Refresh preview to show latest unlocked level
             let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
             if (latestLevel < 0) latestLevel = 0;
+            currentPreviewLevel = latestLevel; // Update the variable too
             renderPreview(latestLevel);
             updatePlayerLevelDisplay();
         });
