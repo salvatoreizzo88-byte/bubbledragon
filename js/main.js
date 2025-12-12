@@ -573,16 +573,9 @@ window.addEventListener('load', () => {
         });
     }
 
-    // --- OLD UI ELEMENTS (Keep only necessary ones, Hide/Remove Edit User button if redundant?) --
-    // We keep Edit User for non-authed users? Or replace it.
-    // User requested "Sign Up", so maybe Edit User is legacy.
-    // For now, let's keep it but Auth is primary for recovery.
-
+    // Edit User button - allows guest users to change their display name
     const editUserBtn = document.getElementById('edit-user-btn');
     if (editUserBtn) {
-        // If we are logged in, maybe hide this?
-        // Checking Database.auth.currentUser is async/complex here as we just inited.
-        // We leave it active for renaming "Guest" users locally if they want.
         editUserBtn.addEventListener('click', () => {
             nameModal.style.display = 'flex';
             nameInput.value = '';

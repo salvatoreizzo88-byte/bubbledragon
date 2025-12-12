@@ -20,7 +20,7 @@ export default class Bubble extends Entity {
             // Apply different friction based on "range" (duration)
             if (this.shootDuration > 50) {
                 this.speedX *= 1.0; // No friction for long range
-                if (Math.floor(this.lifeTime) % 10 === 0) console.log("Long range bubble updated. SpeedX:", this.speedX, "Duration:", this.shootDuration);
+                // Long range bubble updates handled silently
             } else {
                 this.speedX *= Math.pow(0.9, deltaTime); // Friction scaled by time
             }

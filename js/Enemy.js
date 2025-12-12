@@ -225,7 +225,7 @@ export default class Enemy extends Entity {
                             this.x = checkX * tileSize + tileSize / 4;
                             this.y = checkY * tileSize;
                             this.speedX = (Math.random() > 0.5 ? 1 : -1) * this.speed;
-                            console.log('Enemy unstuck!', { x: this.x, y: this.y });
+                            // Successfully unstuck enemy
                             return;
                         }
                     }
@@ -288,7 +288,7 @@ export default class Enemy extends Entity {
                                 this.x = checkX * tileSize;
                                 this.y = checkY * tileSize;
                                 this.speedX = (player.x < this.x ? -1 : 1) * this.speed;
-                                console.log('Enemy teleported near player from inaccessible area');
+                                // Teleported near player from inaccessible area
                                 return;
                             }
                         }
@@ -299,7 +299,7 @@ export default class Enemy extends Entity {
             // Fallback: spawn at center top if can't find good position
             this.x = this.game.width / 2;
             this.y = tileSize * 2;
-            console.log('Enemy teleported to center fallback');
+            // Fallback teleport to center
         }
     }
 }

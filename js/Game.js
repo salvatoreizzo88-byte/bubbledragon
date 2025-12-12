@@ -322,7 +322,6 @@ export default class Game {
                 // Spawn Fruit from top at random X, avoiding side walls (40px)
                 // Width available: 800 - 40(left) - 40(right) - 32(fruit) = 688
                 const randomX = 40 + Math.random() * (this.width - 80 - 32);
-                console.log("Spawning fruit at", randomX, 60);
                 this.fruits.push(new Fruit(this, randomX, 60)); // Start below the ceiling
 
                 // Track enemy defeated for stats
@@ -423,9 +422,6 @@ export default class Game {
         });
         this.powerUps = this.powerUps.filter(p => !p.markedForDeletion);
 
-        // NOTE: Fruit collision is now handled in the main fruits update loop (lines 267-298)
-        // This duplicate block was removed to avoid conflicts
-
         // Coin spawn logic (random spawn every few seconds)
         if (this.coinSpawnCooldown > 0) {
             this.coinSpawnCooldown -= timeScale;
@@ -436,7 +432,6 @@ export default class Game {
             this.coinsSpawnedInLevel++;
             // Cooldown increases with each spawn
             this.coinSpawnCooldown = 180 + this.coinsSpawnedInLevel * 60; // 3-5+ seconds
-            console.log('Coin spawned!');
         }
 
         // Coin update and collision
