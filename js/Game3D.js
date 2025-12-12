@@ -392,31 +392,47 @@ export default class Game3D {
     updatePlayer() {
         if (!this.player) return;
 
-        const moveDir = new BABYLON.Vector3(0, 0, 0);
+        let inputX = 0;
+        let inputZ = 0;
 
-        // WASD or Arrow keys (no vertical movement from up arrow, that's jump)
+        // WASD or Arrow keys
         if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
-            moveDir.z += 1;
+            inputZ += 1;
+        }
+        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
+            inputZ -= 1;
         }
         if (this.keys['ArrowLeft'] || this.keys['a'] || this.keys['A']) {
-            moveDir.x -= 1;
+            inputX -= 1;
         }
         if (this.keys['ArrowRight'] || this.keys['d'] || this.keys['D']) {
-            moveDir.x += 1;
+            inputX += 1;
         }
 
-        // Virtual joystick input (mobile) - X inverted to match camera view
+        // Virtual joystick input (mobile)
         if (this.joystickX !== undefined && this.joystickY !== undefined) {
-            moveDir.x -= this.joystickX;  // X INVERTED (left/right)
-            moveDir.z += this.joystickY;  // Z NORMAL (up/down)
+            inputX += this.joystickX;
+            inputZ -= this.joystickY;
         }
 
-        // Normalize and apply speed (horizontal only)
-        if (moveDir.length() > 0) {
-            moveDir.normalize();
-            moveDir.scaleInPlace(this.playerSpeed);
-            this.player.position.x += moveDir.x;
-            this.player.position.z += moveDir.z;
+        // Transform input relative to camera direction
+        if (Math.abs(inputX) > 0.01 || Math.abs(inputZ) > 0.01) {
+            // Get camera angle (alpha is horizontal rotation)
+            const cameraAngle = this.camera.alpha - Math.PI / 2;
+
+            // Rotate input vector by camera angle
+            const cos = Math.cos(cameraAngle);
+            const sin = Math.sin(cameraAngle);
+
+            const rotatedX = inputX * cos - inputZ * sin;
+            const rotatedZ = inputX * sin + inputZ * cos;
+
+            // Normalize and apply speed
+            const len = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
+            if (len > 0) {
+                this.player.position.x += (rotatedX / len) * this.playerSpeed;
+                this.player.position.z += (rotatedZ / len) * this.playerSpeed;
+            }
         }
 
         // === VERTICAL PHYSICS (Gravity + Jump) ===
