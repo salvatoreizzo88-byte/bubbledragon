@@ -78,6 +78,55 @@
             z-index: 100;
         }
 
+        /* Lives Display */
+        #lives-display {
+            position: absolute;
+            top: calc(env(safe-area-inset-top, 20px) + 35px);
+            right: 20px;
+            color: #ff4444;
+            font-size: 24px;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* Game Over Overlay */
+        #game-over {
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 200;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #game-over h2 {
+            color: #ff0000;
+            font-size: 48px;
+            text-shadow: 0 0 20px #ff0000;
+            margin-bottom: 20px;
+        }
+
+        #game-over p {
+            color: #00ff00;
+            font-size: 32px;
+            margin-bottom: 30px;
+        }
+
+        #retry-btn {
+            padding: 15px 40px;
+            font-size: 20px;
+            background: linear-gradient(135deg, #00ff00, #00aa00);
+            border: 3px solid white;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+        }
+
         /* Joystick */
         #joystick-container {
             position: absolute;
@@ -157,8 +206,16 @@
     </div>
 
     <div id="score-display">SCORE: 0</div>
+    <div id="lives-display">❤️❤️❤️</div>
 
     <button id="back-btn">← MENU 2D</button>
+
+    <!-- Game Over Overlay -->
+    <div id="game-over">
+        <h2>💀 GAME OVER</h2>
+        <p id="final-score">SCORE: 0</p>
+        <button id="retry-btn">🔄 RIPROVA</button>
+    </div>
 
     <div id="joystick-container">
         <div id="joystick-base">
@@ -241,8 +298,21 @@
 
             // === SCORE UPDATE ===
             const scoreDisplay = document.getElementById('score-display');
+            const livesDisplay = document.getElementById('lives-display');
+            const gameOverOverlay = document.getElementById('game-over');
+            const finalScore = document.getElementById('final-score');
+
             setInterval(() => {
                 scoreDisplay.textContent = `SCORE: ${game.score}`;
+
+                // Update lives (hearts)
+                livesDisplay.textContent = '❤️'.repeat(Math.max(0, game.lives));
+
+                // Check game over
+                if (game.gameOver && gameOverOverlay.style.display !== 'flex') {
+                    gameOverOverlay.style.display = 'flex';
+                    finalScore.textContent = `SCORE: ${game.score}`;
+                }
             }, 100);
 
             // === BACK BUTTON ===
@@ -252,6 +322,15 @@
             document.getElementById('back-btn').addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 window.location.href = 'index.html';
+            });
+
+            // === RETRY BUTTON ===
+            document.getElementById('retry-btn').addEventListener('click', () => {
+                window.location.reload();
+            });
+            document.getElementById('retry-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                window.location.reload();
             });
 
             console.log('🎮 Bubble Bobble 3D Ready!');

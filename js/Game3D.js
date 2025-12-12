@@ -18,6 +18,8 @@ export default class Game3D {
         this.paused = false;
         this.gameOver = false;
         this.score = 0;
+        this.lives = 3;           // Player lives
+        this.damageCooldown = 0;  // Invincibility after hit
         this.levelIndex = 0;
 
         // Entity arrays
@@ -373,18 +375,46 @@ export default class Game3D {
     }
 
     checkCollisions() {
-        if (!this.player) return;
+        if (!this.player || this.gameOver) return;
+
+        // Decrease damage cooldown
+        if (this.damageCooldown > 0) {
+            this.damageCooldown--;
+            // Flash player red/green while invincible
+            if (this.damageCooldown % 10 < 5) {
+                this.player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
+            } else {
+                this.player.material.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
+            }
+        }
 
         // Player-Enemy collision
         this.enemies.forEach(enemy => {
+            if (enemy.trapped) return; // Skip trapped enemies
+
             const dist = BABYLON.Vector3.Distance(
                 this.player.position,
                 enemy.mesh.position
             );
 
-            if (dist < 1.2 && !enemy.trapped) {
-                console.log('💥 Player hit enemy!');
-                // TODO: Implement damage/death
+            if (dist < 1.5 && this.damageCooldown <= 0) {
+                // Take damage!
+                this.lives--;
+                this.damageCooldown = 90; // 1.5 seconds invincibility
+                console.log(`💔 Player hit! Lives: ${this.lives}`);
+
+                // Knock player back
+                const dx = this.player.position.x - enemy.mesh.position.x;
+                const dz = this.player.position.z - enemy.mesh.position.z;
+                const len = Math.sqrt(dx * dx + dz * dz) || 1;
+                this.player.position.x += (dx / len) * 2;
+                this.player.position.z += (dz / len) * 2;
+
+                // Check game over
+                if (this.lives <= 0) {
+                    this.gameOver = true;
+                    console.log('💀 GAME OVER!');
+                }
             }
         });
     }
