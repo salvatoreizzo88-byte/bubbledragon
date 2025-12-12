@@ -44,12 +44,50 @@ const GameConfig = {
         tileSize: 40
     },
 
-    // === XP & LEVELING ===
+    // === XP & LEVELING (Dynamic "Hook" System) ===
     progression: {
-        xpPerLevel: 500,
         bonusPerLevel: 0.001, // 0.1% per level
         xpFromFruit: 25,
-        xpFromEnemy: 50
+        xpFromEnemy: 50,
+
+        // XP required per level range (Hook curve: easy at start, harder later)
+        // Returns XP needed to complete a specific level
+        getXPForLevel: function (level) {
+            if (level <= 5) return 100;       // Very fast (1-5)
+            if (level <= 10) return 200;      // Fast (6-10)
+            if (level <= 20) return 350;      // Starting to slow (11-20)
+            if (level <= 40) return 500;      // Normal (21-40)
+            if (level <= 60) return 750;      // Slow (41-60)
+            if (level <= 80) return 1000;     // Very slow (61-80)
+            return 1500;                       // Hardcore (81-100+)
+        },
+
+        // Total XP needed to reach a specific level
+        getTotalXPForLevel: function (targetLevel) {
+            let total = 0;
+            for (let lvl = 1; lvl < targetLevel; lvl++) {
+                total += this.getXPForLevel(lvl);
+            }
+            return total;
+        },
+
+        // Calculate current level from total XP
+        getLevelFromTotalXP: function (totalXP) {
+            let level = 1;
+            let xpRemaining = totalXP;
+            while (xpRemaining >= this.getXPForLevel(level)) {
+                xpRemaining -= this.getXPForLevel(level);
+                level++;
+            }
+            return level;
+        },
+
+        // XP progress within current level (for progress bar)
+        getXPProgressInLevel: function (totalXP) {
+            const currentLevel = this.getLevelFromTotalXP(totalXP);
+            const xpForCurrentLevel = this.getTotalXPForLevel(currentLevel);
+            return totalXP - xpForCurrentLevel;
+        }
     },
 
     // === ECONOMY ===

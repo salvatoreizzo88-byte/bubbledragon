@@ -1,6 +1,7 @@
 import Entity from './Entity.js';
 import Bubble from './Bubble.js';
 import { SimpleAnimation } from './SpriteAnimation.js';
+import GameConfig from './GameConfig.js';
 
 export default class Player extends Entity {
     constructor(game) {
@@ -25,7 +26,7 @@ export default class Player extends Entity {
         // Player Level System
         this.xp = 0;
         this.playerLevel = 1;
-        this.xpPerLevel = 500; // XP needed for each level
+        // xpPerLevel is now dynamic via GameConfig.progression.getXPForLevel()
         this.bonusPerLevel = 0.002; // 0.2% stat increase per level
 
         // Powerup flags
@@ -78,10 +79,11 @@ export default class Player extends Entity {
         return newImg;
     }
 
-    // Add XP and check for level up
+    // Add XP and check for level up (uses dynamic XP curve from GameConfig)
     addXP(amount) {
         this.xp += amount;
-        const newLevel = Math.floor(this.xp / this.xpPerLevel) + 1;
+        const prog = GameConfig.progression;
+        const newLevel = prog.getLevelFromTotalXP(this.xp);
         if (newLevel > this.playerLevel) {
             this.playerLevel = newLevel;
             console.log(`🎉 LEVEL UP! Livello ${this.playerLevel}`);

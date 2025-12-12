@@ -5,6 +5,7 @@ import UserManager from './UserManager.js';
 import Database from './Database.js';
 import AudioManager from './AudioManager.js';
 import AchievementManager from './AchievementManager.js';
+import GameConfig from './GameConfig.js';
 
 // === LOADING SCREEN CONTROLLER ===
 const loadingScreen = {
@@ -349,13 +350,16 @@ window.addEventListener('load', () => {
 
         const level = gameState.playerLevel || 1;
         const totalXP = gameState.playerXP || 0;
-        const xpPerLevel = 500;
-        const xpInCurrentLevel = totalXP % xpPerLevel;
-        const progressPercent = (xpInCurrentLevel / xpPerLevel) * 100;
+
+        // Use dynamic XP curve from GameConfig
+        const prog = GameConfig.progression;
+        const xpForThisLevel = prog.getXPForLevel(level);
+        const xpInCurrentLevel = prog.getXPProgressInLevel(totalXP);
+        const progressPercent = (xpInCurrentLevel / xpForThisLevel) * 100;
 
         levelText.innerText = `LV ${level}`;
         if (xpBar) xpBar.style.width = `${progressPercent}%`;
-        if (xpText) xpText.innerText = `${xpInCurrentLevel} / ${xpPerLevel} XP`;
+        if (xpText) xpText.innerText = `${xpInCurrentLevel} / ${xpForThisLevel} XP`;
 
         // Update currency display
         if (menuCoins) menuCoins.innerText = gameState.coins || 0;
@@ -1298,15 +1302,17 @@ window.addEventListener('load', () => {
         const levelDisplay = document.getElementById('dragon-level-display');
         if (levelDisplay) levelDisplay.textContent = `LIVELLO ${gameState.playerLevel}`;
 
-        // XP Progress
-        const xpPerLevel = 500;
+        // XP Progress (using dynamic XP curve)
+        const prog = GameConfig.progression;
         const totalXP = gameState.playerXP || 0;
-        const xpInCurrentLevel = totalXP % xpPerLevel;
-        const xpToNextLevel = xpPerLevel - xpInCurrentLevel;
-        const progressPercent = (xpInCurrentLevel / xpPerLevel) * 100;
+        const currentLevel = gameState.playerLevel || 1;
+        const xpForThisLevel = prog.getXPForLevel(currentLevel);
+        const xpInCurrentLevel = prog.getXPProgressInLevel(totalXP);
+        const xpToNextLevel = xpForThisLevel - xpInCurrentLevel;
+        const progressPercent = (xpInCurrentLevel / xpForThisLevel) * 100;
 
         const xpText = document.getElementById('dragon-xp-text');
-        if (xpText) xpText.textContent = `${xpInCurrentLevel} / ${xpPerLevel} XP`;
+        if (xpText) xpText.textContent = `${xpInCurrentLevel} / ${xpForThisLevel} XP`;
 
         const xpBar = document.getElementById('dragon-xp-bar');
         if (xpBar) xpBar.style.width = `${progressPercent}%`;
