@@ -237,24 +237,42 @@ export default class Game3D {
     }
 
     createTestEnemy(scene) {
-        // Red enemy sphere
-        const enemy = BABYLON.MeshBuilder.CreateSphere('enemy', {
-            diameter: 1
-        }, scene);
-        enemy.position = new BABYLON.Vector3(-3, 3, -3);
+        // Create multiple enemies at random positions
+        const enemyPositions = [
+            new BABYLON.Vector3(-6, 1, -6),
+            new BABYLON.Vector3(6, 1, -6),
+            new BABYLON.Vector3(-6, 1, 6),
+            new BABYLON.Vector3(6, 1, 6),
+            new BABYLON.Vector3(0, 1, -8),
+        ];
 
-        const enemyMat = new BABYLON.StandardMaterial('enemyMat', scene);
-        enemyMat.diffuseColor = new BABYLON.Color3(0.9, 0.2, 0.3);
-        enemyMat.emissiveColor = new BABYLON.Color3(0.3, 0.05, 0.1);
-        enemy.material = enemyMat;
+        const enemyColors = [
+            new BABYLON.Color3(0.9, 0.2, 0.2), // Red
+            new BABYLON.Color3(0.2, 0.9, 0.2), // Green
+            new BABYLON.Color3(0.2, 0.2, 0.9), // Blue
+            new BABYLON.Color3(0.9, 0.9, 0.2), // Yellow
+            new BABYLON.Color3(0.9, 0.2, 0.9), // Magenta
+        ];
 
-        this.enemies.push({
-            mesh: enemy,
-            speed: 0.05,
-            direction: new BABYLON.Vector3(1, 0, 0)
+        enemyPositions.forEach((pos, i) => {
+            const enemy = BABYLON.MeshBuilder.CreateSphere(`enemy${i}`, {
+                diameter: 1.2
+            }, scene);
+            enemy.position = pos;
+
+            const enemyMat = new BABYLON.StandardMaterial(`enemyMat${i}`, scene);
+            enemyMat.diffuseColor = enemyColors[i];
+            enemyMat.emissiveColor = enemyColors[i].scale(0.3);
+            enemy.material = enemyMat;
+
+            this.enemies.push({
+                mesh: enemy,
+                speed: 0.03 + Math.random() * 0.02, // Random speed 0.03-0.05
+                trapped: false
+            });
         });
 
-        console.log('👾 Test enemy created');
+        console.log(`👾 ${enemyPositions.length} enemies created!`);
     }
 
     update() {
@@ -324,17 +342,33 @@ export default class Game3D {
     }
 
     updateEnemies() {
-        this.enemies.forEach(enemy => {
-            // Simple patrol: move in direction, reverse at walls
-            enemy.mesh.position.addInPlace(enemy.direction.scale(enemy.speed));
+        if (!this.player) return;
 
-            // Reverse at walls
-            if (Math.abs(enemy.mesh.position.x) > 8) {
-                enemy.direction.x *= -1;
+        this.enemies.forEach(enemy => {
+            // Skip trapped enemies
+            if (enemy.trapped) return;
+
+            // Chase player AI
+            const dx = this.player.position.x - enemy.mesh.position.x;
+            const dz = this.player.position.z - enemy.mesh.position.z;
+            const distance = Math.sqrt(dx * dx + dz * dz);
+
+            if (distance > 0.5) {
+                // Normalize direction to player
+                const dirX = dx / distance;
+                const dirZ = dz / distance;
+
+                // Move towards player
+                enemy.mesh.position.x += dirX * enemy.speed;
+                enemy.mesh.position.z += dirZ * enemy.speed;
             }
-            if (Math.abs(enemy.mesh.position.z) > 8) {
-                enemy.direction.z *= -1;
-            }
+
+            // Keep on ground level
+            enemy.mesh.position.y = 1;
+
+            // Stay in bounds
+            enemy.mesh.position.x = Math.max(-9, Math.min(9, enemy.mesh.position.x));
+            enemy.mesh.position.z = Math.max(-9, Math.min(9, enemy.mesh.position.z));
         });
     }
 
