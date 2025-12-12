@@ -892,6 +892,7 @@ window.addEventListener('load', () => {
         backBtn.addEventListener('click', () => {
             shopScreen.style.display = 'none';
             mainMenu.style.display = 'flex';
+            updatePlayerLevelDisplay(); // Refresh coins on main menu
         });
     }
 
