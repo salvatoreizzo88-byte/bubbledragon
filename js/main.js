@@ -1475,6 +1475,15 @@ window.addEventListener('load', () => {
             togglePauseUI();
             gameStarted = false;
 
+            // Submit score to leaderboard before quitting
+            if (gameState && gameState.username) {
+                Database.submitScore(
+                    gameState.username,
+                    gameState.playerLevel, // Dragon level for ranking
+                    gameState.maxLevel // Max game level reached
+                );
+            }
+
             // Hide tutorial overlay if active
             if (game.tutorial) {
                 game.tutorial.reset();
