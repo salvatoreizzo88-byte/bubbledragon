@@ -887,9 +887,8 @@ window.addEventListener('load', () => {
             audioManager.playSound('gamestart');
             startScreen.style.display = 'none';
             game.setGameState(gameState);
-            game.resetGame();
-            // Pass level index from carousel
-            game.level.load(currentPreviewLevel);
+            // Pass level index from carousel directly to resetGame
+            game.resetGame(currentPreviewLevel);
 
             // Start tutorial for first-time players
             if (!gameState.tutorialCompleted) {
@@ -930,11 +929,9 @@ window.addEventListener('load', () => {
         document.getElementById('main-menu').style.display = 'flex';
 
         game.setGameState(gameState);
-        game.resetGame();
 
-        // Overseed startLevel by forcing index
-        game.levelIndex = index;
-        game.startLevel(); // Restart level with new index
+        // Pass level index directly to resetGame (which calls startLevel internally)
+        game.resetGame(index);
 
         gameStarted = true;
         lastTime = performance.now();

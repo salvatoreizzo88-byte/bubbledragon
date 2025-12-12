@@ -49,9 +49,9 @@ export default class Game {
         this.gameState = gameState;
     }
 
-    resetGame() {
+    resetGame(startingLevel = 0) {
         this.score = 0;
-        this.levelIndex = 0;
+        this.levelIndex = startingLevel; // Use parameter instead of always 0
         this.gameOver = false;
         this.victory = false;
         this.paused = false;
