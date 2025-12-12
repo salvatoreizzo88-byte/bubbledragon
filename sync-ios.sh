@@ -15,7 +15,7 @@ mkdir -p www
 
 # Copia tutti i file necessari
 echo "📁 Copiando file aggiornati..."
-cp -r index.html style.css js assets manifest.json sw.js www/
+cp -r index.html game3d.html style.css js assets manifest.json sw.js www/
 
 # Esegui cap sync
 echo "⚡ Eseguendo cap sync ios..."
