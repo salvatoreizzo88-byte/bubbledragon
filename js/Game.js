@@ -72,6 +72,11 @@ export default class Game {
 
         // Reset lives to 3 and apply extra lives from achievements
         this.player.lives = 3;
+
+        // Reset one-time-per-game flags
+        this.player.shieldAppliedThisGame = false;
+        this.player.immortalStartApplied = false;
+
         if (this.player.achievementExtraLives > 0) {
             this.player.lives += this.player.achievementExtraLives;
             console.log(`+${this.player.achievementExtraLives} vite extra da achievement!`);

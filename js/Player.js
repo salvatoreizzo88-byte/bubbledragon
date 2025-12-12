@@ -174,13 +174,13 @@ export default class Player extends Entity {
         }
         this.jumpsRemaining = 0; // Reset, will be set when grounded
 
-        // === SHIELD ===
-        if (gameState.hasItem('shield') && !this.hasShield) {
-            this.hasShield = true;
+        // === SHIELD (shop item) - Only activate ONCE per game ===
+        if (gameState.hasItem('shield') && !this.shieldAppliedThisGame) {
+            this.shieldAppliedThisGame = true;
             this.shieldActive = true;
             console.log("🛡️ Scudo shop attivato!");
         }
-        console.log("🛡️ Shield status - hasItem:", gameState.hasItem('shield'), "hasShield:", this.hasShield, "shieldActive:", this.shieldActive);
+        console.log("🛡️ Shield status - hasItem:", gameState.hasItem('shield'), "shieldApplied:", this.shieldAppliedThisGame, "shieldActive:", this.shieldActive);
 
         // === PREMIUM: coin_magnet - attracts nearby coins ===
         this.hasCoinMagnet = gameState.hasItem('coin_magnet');
