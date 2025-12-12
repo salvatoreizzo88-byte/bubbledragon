@@ -85,6 +85,63 @@ export default class Game {
         this.startLevel();
     }
 
+    // Show continue screen when player loses all lives
+    showContinueScreen() {
+        this.paused = true;
+        this.showingContinue = true;
+
+        // Update continue screen with current dragocoin count and ads remaining
+        const continueScreen = document.getElementById('continue-screen');
+        const dragocoinCount = document.getElementById('continue-dragocoin-count');
+        const adsRemaining = document.getElementById('ads-remaining');
+        const adBtn = document.getElementById('continue-ad-btn');
+        const dragocoinBtn = document.getElementById('continue-dragocoin-btn');
+
+        if (dragocoinCount) {
+            dragocoinCount.innerText = this.gameState.dragocoin || 0;
+        }
+
+        // Check daily ads limit (stored in gameState)
+        const today = new Date().toDateString();
+        if (this.gameState.lastAdDate !== today) {
+            this.gameState.lastAdDate = today;
+            this.gameState.dailyAdsUsed = 0;
+        }
+        const adsLeft = 5 - (this.gameState.dailyAdsUsed || 0);
+
+        if (adsRemaining) {
+            adsRemaining.innerText = adsLeft;
+        }
+
+        // Disable ad button if no ads left
+        if (adBtn && adsLeft <= 0) {
+            adBtn.disabled = true;
+            adBtn.style.opacity = '0.5';
+            adBtn.style.cursor = 'not-allowed';
+        } else if (adBtn) {
+            adBtn.disabled = false;
+            adBtn.style.opacity = '1';
+            adBtn.style.cursor = 'pointer';
+        }
+
+        // Disable dragocoin button if not enough
+        if (dragocoinBtn && (this.gameState.dragocoin || 0) < 5) {
+            dragocoinBtn.disabled = true;
+            dragocoinBtn.style.opacity = '0.5';
+            dragocoinBtn.style.cursor = 'not-allowed';
+        } else if (dragocoinBtn) {
+            dragocoinBtn.disabled = false;
+            dragocoinBtn.style.opacity = '1';
+            dragocoinBtn.style.cursor = 'pointer';
+        }
+
+        if (continueScreen) {
+            continueScreen.style.display = 'flex';
+        }
+
+        this.audioManager.playSound('gameover');
+    }
+
     startLevel() {
         this.level.load(this.levelIndex);
         this.enemies = [];
@@ -158,60 +215,7 @@ export default class Game {
 
                 this.levelIndex++;
                 if (this.player.lives <= 0) {
-                    // Show continue screen instead of immediate game over
-                    this.paused = true;
-                    this.showingContinue = true;
-
-                    // Update continue screen with current dragocoin count and ads remaining
-                    const continueScreen = document.getElementById('continue-screen');
-                    const dragocoinCount = document.getElementById('continue-dragocoin-count');
-                    const adsRemaining = document.getElementById('ads-remaining');
-                    const adBtn = document.getElementById('continue-ad-btn');
-                    const dragocoinBtn = document.getElementById('continue-dragocoin-btn');
-
-                    if (dragocoinCount) {
-                        dragocoinCount.innerText = this.gameState.dragocoin || 0;
-                    }
-
-                    // Check daily ads limit (stored in gameState)
-                    const today = new Date().toDateString();
-                    if (this.gameState.lastAdDate !== today) {
-                        this.gameState.lastAdDate = today;
-                        this.gameState.dailyAdsUsed = 0;
-                    }
-                    const adsLeft = 5 - (this.gameState.dailyAdsUsed || 0);
-
-                    if (adsRemaining) {
-                        adsRemaining.innerText = adsLeft;
-                    }
-
-                    // Disable ad button if no ads left
-                    if (adBtn && adsLeft <= 0) {
-                        adBtn.disabled = true;
-                        adBtn.style.opacity = '0.5';
-                        adBtn.style.cursor = 'not-allowed';
-                    } else if (adBtn) {
-                        adBtn.disabled = false;
-                        adBtn.style.opacity = '1';
-                        adBtn.style.cursor = 'pointer';
-                    }
-
-                    // Disable dragocoin button if not enough
-                    if (dragocoinBtn && (this.gameState.dragocoin || 0) < 5) {
-                        dragocoinBtn.disabled = true;
-                        dragocoinBtn.style.opacity = '0.5';
-                        dragocoinBtn.style.cursor = 'not-allowed';
-                    } else if (dragocoinBtn) {
-                        dragocoinBtn.disabled = false;
-                        dragocoinBtn.style.opacity = '1';
-                        dragocoinBtn.style.cursor = 'pointer';
-                    }
-
-                    if (continueScreen) {
-                        continueScreen.style.display = 'flex';
-                    }
-
-                    this.audioManager.playSound('gameover');
+                    this.showContinueScreen();
                 }
 
                 // Check achievements for this level completion
@@ -532,11 +536,17 @@ export default class Game {
                     if (this.gameState) {
                         this.gameState.incrementStat('totalDeaths');
                     }
-                    this.player.reset();
-                    if (this.gameState) {
-                        this.player.applyPowerups(this.gameState);
+
+                    // Check if player is out of lives - show continue screen
+                    if (this.player.lives <= 0) {
+                        this.showContinueScreen();
+                    } else {
+                        this.player.reset();
+                        if (this.gameState) {
+                            this.player.applyPowerups(this.gameState);
+                        }
+                        this.sessionCoins = Math.floor(this.sessionCoins * 0.8);
                     }
-                    this.sessionCoins = Math.floor(this.sessionCoins * 0.8);
                 }
             }
         });
