@@ -42,8 +42,16 @@ window.addEventListener('load', () => {
 
     // UI Elements
     const userDisplay = document.getElementById('user-display');
+    let isUserDataLoaded = false; // Flag to prevent flash of old username
+
     const updateDisplay = () => {
-        if (userDisplay) userDisplay.innerText = `GIOCATORE: ${userManager.getUsername()}`;
+        if (userDisplay) {
+            if (!isUserDataLoaded) {
+                userDisplay.innerText = 'GIOCATORE: ...';
+            } else {
+                userDisplay.innerText = `GIOCATORE: ${userManager.getUsername()}`;
+            }
+        }
 
         const profileBar = document.querySelector('.profile-bar');
 
@@ -111,6 +119,7 @@ window.addEventListener('load', () => {
                 }
 
                 // Update UI
+                isUserDataLoaded = true;
                 updateDisplay();
                 updatePlayerLevelDisplay();
 
@@ -123,6 +132,7 @@ window.addEventListener('load', () => {
             } else {
                 // User is not logged in - guest mode
                 console.log("Nessun utente loggato - modalità ospite");
+                isUserDataLoaded = true;
                 updateDisplay();
             }
         });
@@ -143,6 +153,7 @@ window.addEventListener('load', () => {
                 userManager.setUsername(result.newUsername);
                 console.log(`✅ UI aggiornata con nuovo username: ${result.newUsername}`);
             }
+            isUserDataLoaded = true;
             updateDisplay();
             let latestLevel = Math.min(gameState.maxLevel - 1, maxLevels - 1);
             if (latestLevel < 0) latestLevel = 0;
