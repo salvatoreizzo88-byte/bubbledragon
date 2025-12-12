@@ -1510,6 +1510,7 @@ window.addEventListener('load', () => {
             document.getElementById('start-screen').style.display = 'flex';
             setTouchControls(false);
             renderPreview(currentPreviewLevel);
+            updatePlayerLevelDisplay(); // Update level bar on main menu
         });
     }
 
