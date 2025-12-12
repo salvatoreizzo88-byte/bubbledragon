@@ -51,9 +51,34 @@ canvas {
     text-shadow: 2px 2px 0 #000;
 }
 
+#ui-left,
+#ui-right {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#ui-center {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
 #lives {
     color: #ff4444;
     font-size: 14px;
+}
+
+#shield-status {
+    color: #00aaff;
+    font-size: 12px;
+    animation: pulse 1s infinite;
+}
+
+#active-powerups {
+    display: flex;
+    gap: 10px;
+    font-size: 20px;
 }
 
 /* --- MAIN MENU --- */

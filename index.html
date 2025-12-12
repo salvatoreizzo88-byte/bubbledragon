@@ -173,9 +173,17 @@
     <div id="game-container">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
         <div id="ui-layer">
-            <div id="lives">❤️ VITE: 3</div>
-            <div id="score">⭐ XP: 0</div>
-            <div id="high-score">🪙 MONETE: 0</div>
+            <div id="ui-left">
+                <div id="lives">❤️ VITE: 3</div>
+                <div id="shield-status" style="display: none;">🛡️ SCUDO</div>
+            </div>
+            <div id="ui-center">
+                <div id="active-powerups"></div>
+            </div>
+            <div id="ui-right">
+                <div id="score">⭐ XP: 0</div>
+                <div id="high-score">🪙 MONETE: 0</div>
+            </div>
         </div>
         <div id="start-screen"
             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(180deg, #1a0030 0%, #000 50%, #001a00 100%); display: flex; flex-direction: column; color: white; z-index: 20; pointer-events: auto; padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 10px) env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 10px); box-sizing: border-box;">

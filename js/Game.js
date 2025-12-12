@@ -597,9 +597,38 @@ export default class Game {
         const livesEl = document.getElementById('lives');
         const scoreEl = document.getElementById('score');
         const coinsEl = document.getElementById('high-score');
+        const shieldEl = document.getElementById('shield-status');
+        const powerupsEl = document.getElementById('active-powerups');
+
         if (livesEl) livesEl.innerText = '❤️ VITE: ' + this.player.lives;
         if (scoreEl) scoreEl.innerText = '⭐ XP: ' + this.sessionXP;
         if (coinsEl) coinsEl.innerText = '🪙 MONETE: ' + this.sessionCoins;
+
+        // Show shield status
+        if (shieldEl) {
+            shieldEl.style.display = this.player.shieldActive ? 'block' : 'none';
+        }
+
+        // Show active powerups
+        if (powerupsEl) {
+            let powerups = [];
+
+            // Check active powerups based on player state
+            if (this.player.speed > this.player.baseSpeed * 1.2) {
+                powerups.push('⚡'); // Speed boost
+            }
+            if (this.player.hasDoubleJump) {
+                powerups.push('🦘'); // Double jump
+            }
+            if (this.player.shootInterval < this.player.baseShootInterval * 0.7) {
+                powerups.push('🔥'); // Rapid fire
+            }
+            if (this.player.bubbleShootDuration > 30) {
+                powerups.push('🎯'); // Long range
+            }
+
+            powerupsEl.innerText = powerups.join(' ');
+        }
     }
 
     addBubble(bubble) {
