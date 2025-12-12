@@ -7,6 +7,7 @@ import PowerUp from './PowerUp.js';
 import Coin from './Coin.js';
 import ParticleSystem from './ParticleSystem.js';
 import TutorialManager from './TutorialManager.js';
+import GameConfig from './GameConfig.js';
 
 export default class Game {
     constructor(width, height, audioManager) {
@@ -180,11 +181,14 @@ export default class Game {
         this.wasHitThisLevel = false;
         this.levelStartTime = Date.now();
 
-        // Spawn enemies based on level - use valid spawn positions
-        const enemyCount = Math.min(2 + this.levelIndex, 10); // Increase difficulty, cap at 10
+        // Spawn enemies based on level - use Hook difficulty curve from GameConfig
+        const enemyCount = GameConfig.levels.getEnemyCount(this.levelIndex);
+        const speedMultiplier = GameConfig.levels.getSpeedMultiplier(this.levelIndex);
+        console.log(`📊 Level ${this.levelIndex + 1}: ${enemyCount} enemies at ${speedMultiplier}x speed`);
+
         for (let i = 0; i < enemyCount; i++) {
             const spawnPos = this.level.getRandomSpawnPosition();
-            this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y));
+            this.enemies.push(new Enemy(this, spawnPos.x, spawnPos.y, speedMultiplier));
         }
     }
 

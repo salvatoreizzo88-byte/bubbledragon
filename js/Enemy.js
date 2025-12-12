@@ -2,9 +2,10 @@ import Entity from './Entity.js';
 import { SimpleAnimation } from './SpriteAnimation.js';
 
 export default class Enemy extends Entity {
-    constructor(game, x, y) {
+    constructor(game, x, y, speedMultiplier = 1.0) {
         super(game, x, y, 32, 32);
-        this.speed = 1.2;
+        this.baseSpeed = 1.2;
+        this.speed = this.baseSpeed * speedMultiplier;
         this.speedX = this.speed; // Start moving right
         this.facing = 1; // 1 = right, -1 = left
         this.gravity = 0.5;

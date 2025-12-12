@@ -37,11 +37,37 @@ const GameConfig = {
         size: 32
     },
 
-    // === LEVEL SYSTEM ===
+    // === LEVEL SYSTEM (with Hook difficulty curve) ===
     levels: {
         transitionDuration: 900, // frames (15 seconds)
         maxLevels: 100,
-        tileSize: 40
+        tileSize: 40,
+
+        // Dynamic enemy count based on level (Hook curve: easy start, harder later)
+        getEnemyCount: function (levelIndex) {
+            const level = levelIndex + 1; // Convert 0-indexed to 1-indexed
+            if (level <= 3) return 1;      // Tutorial: 1 enemy (impossible to lose)
+            if (level <= 10) return 2;     // Easy: 2 enemies
+            if (level <= 20) return 3;     // Normal: 3 enemies
+            if (level <= 35) return 4;     // Challenge starts: 4 enemies
+            if (level <= 50) return 5;     // Difficult: 5 enemies
+            if (level <= 70) return 6;     // Very difficult: 6 enemies
+            if (level <= 85) return 7;     // Hardcore: 7 enemies
+            return 8;                       // Expert: 8 enemies (max)
+        },
+
+        // Dynamic enemy speed multiplier (Hook curve)
+        getSpeedMultiplier: function (levelIndex) {
+            const level = levelIndex + 1;
+            if (level <= 3) return 0.6;    // Tutorial: very slow
+            if (level <= 10) return 0.8;   // Easy: slow
+            if (level <= 20) return 1.0;   // Normal: base speed
+            if (level <= 35) return 1.1;   // Challenge: slightly faster
+            if (level <= 50) return 1.2;   // Difficult: faster
+            if (level <= 70) return 1.4;   // Very difficult: much faster
+            if (level <= 85) return 1.5;   // Hardcore: very fast
+            return 1.6;                     // Expert: extreme speed
+        }
     },
 
     // === XP & LEVELING (Dynamic "Hook" System) ===
