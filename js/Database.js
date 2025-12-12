@@ -34,10 +34,12 @@ export default class Database {
                 displayName: username
             });
 
-            // 3. Save Data to Firestore under UID
-            // We use UID as the document key for secure authenticated users
-            await db.collection("users").doc(user.uid).set({
-                username: username,
+            // 3. Save Data to Firestore using USERNAME as document ID
+            // Document ID = username.toLowerCase() for consistency
+            const docId = username.toLowerCase();
+            await db.collection("users").doc(docId).set({
+                nomeUtente: username, // Original case
+                authUid: user.uid, // Link to Firebase Auth
                 email: email,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp(),
                 ...initialData
@@ -57,11 +59,15 @@ export default class Database {
             const userCredential = await this.auth.signInWithEmailAndPassword(email, password);
             const user = userCredential.user;
 
-            // Fetch User Data
-            const doc = await db.collection("users").doc(user.uid).get();
+            // Fetch User Data using displayName (username) as document ID
+            const username = user.displayName;
             let userData = null;
-            if (doc.exists) {
-                userData = doc.data();
+
+            if (username) {
+                const doc = await db.collection("users").doc(username.toLowerCase()).get();
+                if (doc.exists) {
+                    userData = doc.data();
+                }
             }
 
             return { success: true, user: user, data: userData };

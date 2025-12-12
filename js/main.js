@@ -75,16 +75,20 @@ window.addEventListener('load', () => {
                 // User is logged in - restore session
                 console.log("Sessione utente attiva:", user.displayName || user.email);
 
-                // Get user data from Firestore
-                const userData = await Database.getUserData(user.uid);
+                // Get username from displayName
+                const username = user.displayName;
+
+                // Get user data from Firestore using USERNAME as document ID
+                const userData = username ? await Database.getUserData(username.toLowerCase()) : null;
 
                 // Update User Manager
-                const displayName = user.displayName || (userData && userData.username) || "Player";
+                const displayName = username || (userData && userData.nomeUtente) || "Player";
                 userManager.setUsername(displayName);
 
-                // Update Game State with UID-based storage
-                userStorageKey = `bubbleBobbleSave_${user.uid}`;
+                // Update Game State with username-based storage
+                userStorageKey = `bubbleBobbleSave_${username || user.uid}`;
                 gameState = new GameState(userStorageKey);
+                gameState.username = displayName; // Set username for saving
 
                 // Load cloud data if available
                 if (userData) {
