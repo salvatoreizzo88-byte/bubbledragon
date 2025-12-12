@@ -171,8 +171,24 @@ window.addEventListener('load', () => {
                     gameState.loginStreak = userData.serieAccessi || userData.loginStreak || 0;
                     gameState.tutorialCompleted = userData.tutorialCompletato || userData.tutorialCompleted || false;
                     gameState.unlockedAchievements = userData.obiettiviSbloccati || userData.unlockedAchievements || [];
+
+                    // Load stats from cloud
+                    if (userData.statistiche || userData.stats) {
+                        const cloudStats = userData.statistiche || userData.stats;
+                        gameState.stats = {
+                            speedLevel: cloudStats.speedLevel || 0,
+                            enemiesTrapped: cloudStats.enemiesTrapped || cloudStats.nemiciCatturati || 0,
+                            totalCoinsEarned: cloudStats.totalCoinsEarned || cloudStats.moneteTotali || 0,
+                            totalFruitCollected: cloudStats.totalFruitCollected || cloudStats.fruttaRaccolta || 0,
+                            gamesPlayed: cloudStats.gamesPlayed || cloudStats.partiteGiocate || 0,
+                            levelsCompleted: cloudStats.levelsCompleted || cloudStats.livelliCompletati || 0,
+                            powerupsCollected: cloudStats.powerupsCollected || cloudStats.powerupRaccolti || 0,
+                            totalDeaths: cloudStats.totalDeaths || cloudStats.mortiTotali || 0
+                        };
+                    }
+
                     gameState.isLoaded = true;
-                    console.log("✅ Dati utente autenticato caricati, lastLoginDate:", gameState.lastLoginDate);
+                    console.log("✅ Dati utente autenticato caricati, stats:", gameState.stats);
                 } else {
                     gameState.isLoaded = true; // Mark as loaded even if no data (new user)
                     console.log("📭 Nessun dato cloud per utente autenticato");
