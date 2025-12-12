@@ -51,18 +51,16 @@ export default class Game3D {
         scene.clearColor = new BABYLON.Color4(0.1, 0.05, 0.2, 1);
 
         // === CAMERA ===
-        // ArcRotate camera for now (can switch to FollowCamera later)
-        this.camera = new BABYLON.ArcRotateCamera(
+        // Fixed camera from above - no rotation, clear view of arena
+        this.camera = new BABYLON.FreeCamera(
             'camera',
-            Math.PI / 2,  // alpha (horizontal rotation)
-            Math.PI / 3,  // beta (vertical angle)
-            25,           // radius (distance from target)
-            new BABYLON.Vector3(0, 0, 0), // target
+            new BABYLON.Vector3(0, 20, 15), // Position: above and slightly behind
             scene
         );
-        this.camera.attachControl(this.canvas, true);
-        this.camera.lowerRadiusLimit = 10;
-        this.camera.upperRadiusLimit = 50;
+        // Look at center of arena
+        this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
+        // Disable user camera control (fixed camera)
+        this.camera.inputs.clear();
 
         // === LIGHTING ===
         // Ambient light
@@ -316,13 +314,7 @@ export default class Game3D {
         const bounds = 9;
         this.player.position.x = Math.max(-bounds, Math.min(bounds, this.player.position.x));
         this.player.position.z = Math.max(-bounds, Math.min(bounds, this.player.position.z));
-
-        // Update camera target (smooth follow)
-        this.camera.target = BABYLON.Vector3.Lerp(
-            this.camera.target,
-            this.player.position,
-            0.1
-        );
+        // Camera is now fixed - no target update needed
     }
 
     updateEnemies() {
