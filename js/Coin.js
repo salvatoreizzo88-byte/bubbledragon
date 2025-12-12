@@ -30,6 +30,9 @@ export default class Coin extends Entity {
             const magnetRadius = player.coinMagnetRadius || 300;
 
             if (distance < magnetRadius && distance > 0) {
+                // Mark as being attracted (used to disable gravity)
+                this._isInMagnetRange = true;
+
                 // Progressive magnet strength: stronger when closer
                 // Base strength: 1.5 (was 0.3)
                 // Boost: gets 3x stronger when within 50% radius
@@ -47,12 +50,22 @@ export default class Coin extends Entity {
                     this.speedX = (this.speedX / currentSpeed) * maxSpeed;
                     this.speedY = (this.speedY / currentSpeed) * maxSpeed;
                 }
+            } else {
+                this._isInMagnetRange = false;
             }
+        } else {
+            this._isInMagnetRange = false;
         }
 
-        if (!this.grounded) {
+        // Gravity only applies when NOT being attracted by magnet
+        // (otherwise gravity fights vertical magnet force)
+        const isBeingAttracted = this.game && this.game.player &&
+            this.game.player.hasCoinMagnet &&
+            this._isInMagnetRange;
+
+        if (!this.grounded && !isBeingAttracted) {
             this.speedY += this.gravity * deltaTime;
-        } else {
+        } else if (this.grounded) {
             this.speedY = 0;
             this.speedX *= 0.9; // Friction
         }
