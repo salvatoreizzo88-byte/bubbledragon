@@ -26,6 +26,7 @@ export default class Game3D {
         this.enemies = [];
         this.bubbles = [];
         this.fruits = [];
+        this.platforms = [];  // For collision detection
 
         // Create the scene
         this.scene = this.createScene();
@@ -183,6 +184,17 @@ export default class Game3D {
             }, scene);
             platform.position = new BABYLON.Vector3(p.x, p.y, p.z);
             platform.material = platformMat;
+
+            // Save platform data for collision
+            this.platforms.push({
+                mesh: platform,
+                x: p.x,
+                y: p.y,
+                z: p.z,
+                width: p.width,
+                depth: p.depth,
+                height: 0.5
+            });
         });
     }
 
@@ -406,8 +418,35 @@ export default class Game3D {
         this.velocityY -= this.gravity;
         this.player.position.y += this.velocityY;
 
+        // Platform collision check
+        let onPlatform = false;
+        const playerRadius = 0.4;
+        const playerFeet = this.player.position.y - 0.75; // Bottom of player capsule
+
+        for (const p of this.platforms) {
+            const platformTop = p.y + p.height / 2;
+            const halfW = p.width / 2;
+            const halfD = p.depth / 2;
+
+            // Check if player is above platform and within bounds
+            if (this.player.position.x >= p.x - halfW &&
+                this.player.position.x <= p.x + halfW &&
+                this.player.position.z >= p.z - halfD &&
+                this.player.position.z <= p.z + halfD) {
+
+                // If falling onto platform
+                if (this.velocityY <= 0 && playerFeet <= platformTop && playerFeet > platformTop - 0.5) {
+                    this.player.position.y = platformTop + 0.75;
+                    this.velocityY = 0;
+                    this.grounded = true;
+                    onPlatform = true;
+                    break;
+                }
+            }
+        }
+
         // Ground collision (simple floor at groundLevel)
-        if (this.player.position.y <= this.groundLevel) {
+        if (!onPlatform && this.player.position.y <= this.groundLevel) {
             this.player.position.y = this.groundLevel;
             this.velocityY = 0;
             this.grounded = true;
