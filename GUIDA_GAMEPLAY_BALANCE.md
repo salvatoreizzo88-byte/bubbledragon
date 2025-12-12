@@ -86,10 +86,44 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 
 - **Come:** Modificare `LevelGenerator.js` per calcolo dinamico nemici/velocità
 
-### 5. Nemici Poco Dinamici
-- **Problema:** Pattern prevedibile, cambiano solo direzione
-- **Soluzione:** Aggiungere salti casuali, inseguimento
-- **Come:** Modificare `Enemy.js` funzione `update()`
+### 5. AI Nemici Avanzata - Sistema Progressivo 🧠
+- **Strategia:** Nemici sempre più intelligenti e aggressivi man mano che si avanza
+- **Comportamenti da implementare:**
+
+#### Livello Base (1-10): Patrol Semplice
+- Camminano avanti e indietro
+- Si girano quando colpiscono un muro
+- **NON** inseguono il player
+
+#### Livello Intermedio (11-30): Inseguimento Base
+- Camminano verso la direzione del player
+- Possono **saltare** per raggiungere piattaforme
+- 50% probabilità di inseguire attivamente
+
+#### Livello Avanzato (31-60): Inseguimento Attivo
+- Inseguono SEMPRE il player
+- Saltano per raggiungerlo
+- Velocità aumentata quando vedono il player
+- Possono **cadere** da piattaforme per inseguire
+
+#### Livello Expert (61-100): AI Aggressiva
+- Pathfinding intelligente
+- Saltano proattivamente
+- Anticipano i movimenti del player
+- Possono "cercare" il player se non lo vedono
+
+#### Parametri AI per Livello
+| Livello | Salta? | Insegue? | Velocità | Aggressività |
+|---------|--------|----------|----------|--------------|
+| 1-10 | ❌ No | ❌ No | 0.6x | Passivo |
+| 11-20 | ✅ Sì | 30% | 0.8x | Basso |
+| 21-40 | ✅ Sì | 60% | 1.0x | Medio |
+| 41-60 | ✅ Sì | 80% | 1.2x | Alto |
+| 61-80 | ✅ Sì | 100% | 1.4x | Molto alto |
+| 81-100 | ✅ Sì | 100% | 1.6x | Estremo |
+
+- **Come:** Riscrivere `Enemy.js` con sistema AI modulare
+- **File:** `Enemy.js` - aggiungere `jumpForce`, `chasePlayer()`, `canSeePlayer()`
 
 ---
 
