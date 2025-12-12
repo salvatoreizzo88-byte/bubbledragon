@@ -1598,6 +1598,11 @@ window.addEventListener('load', () => {
             togglePauseUI();
             gameStarted = false;
 
+            // SAVE ALL STATS before quitting (including enemiesTrapped, etc.)
+            if (gameState) {
+                gameState.save(); // This saves all stats to Firebase
+            }
+
             // Submit score to leaderboard before quitting
             if (gameState && gameState.username) {
                 Database.submitScore(
