@@ -533,6 +533,7 @@ export default class Game {
                     console.log("Scudo consumato!");
                 } else {
                     this.player.lives--;
+                    console.log("💀 Vita persa! Vite rimanenti:", this.player.lives);
                     this.deathsThisRun++;
                     if (this.gameState) {
                         this.gameState.incrementStat('totalDeaths');
@@ -541,12 +542,14 @@ export default class Game {
                     // Check if player is out of lives - show continue screen
                     if (this.player.lives <= 0) {
                         this.showContinueScreen();
+                        return; // Exit checkCollisions immediately
                     } else {
                         this.player.reset();
                         if (this.gameState) {
                             this.player.applyPowerups(this.gameState);
                         }
                         this.sessionCoins = Math.floor(this.sessionCoins * 0.8);
+                        return; // Exit to avoid multiple collisions in same frame
                     }
                 }
             }
