@@ -54,7 +54,7 @@ export default class Game3D {
         // Fixed camera from above - no rotation, clear view of arena
         this.camera = new BABYLON.FreeCamera(
             'camera',
-            new BABYLON.Vector3(0, 20, 15), // Position: above and slightly behind
+            new BABYLON.Vector3(0, 35, 20), // Position: high above for full arena view
             scene
         );
         // Look at center of arena
@@ -200,7 +200,7 @@ export default class Game3D {
         this.player = player;
 
         // === PHYSICS CONFIG ===
-        this.playerSpeed = 0.25;      // Increased from 0.15
+        this.playerSpeed = 0.10;      // Reduced for better control
         this.jumpForce = 0.35;        // Jump strength
         this.gravity = 0.015;         // Gravity strength
         this.velocityY = 0;           // Vertical velocity
