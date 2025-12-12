@@ -56,7 +56,21 @@ export default class GameState {
                 console.log("✅ Dati caricati con successo dal cloud");
             } else {
                 console.log("📭 Nessun dato trovato nel cloud per:", this.username);
-                this.isLoaded = true; // Mark as loaded even if empty (new user)
+
+                // If username is NOT a guest (utente_XXXX) but doesn't exist in Firebase,
+                // reset to a new guest username
+                if (!this.username.startsWith('utente_')) {
+                    const randomId = Math.floor(1000 + Math.random() * 9000);
+                    const newGuestName = `utente_${randomId}`;
+                    console.log(`🔄 Resetting a nuovo utente guest: ${newGuestName}`);
+
+                    // Update UserManager's stored username  
+                    localStorage.setItem('bubbleBobbleUser', newGuestName);
+                    this.username = newGuestName;
+                    this.storageKey = newGuestName;
+                }
+
+                this.isLoaded = true; // Mark as loaded (new user)
             }
         } catch (error) {
             console.error("❌ Errore caricamento da cloud:", error);
