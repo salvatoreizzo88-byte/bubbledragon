@@ -1470,6 +1470,7 @@ window.addEventListener('load', () => {
         if (continueScreen) continueScreen.style.display = 'none';
         if (game) {
             game.player.lives = 1;
+            game.player.invulnerableTimer = 180; // 3 seconds of invulnerability after continue
             game.showingContinue = false;
             game.paused = false;
             game.restartLevel();

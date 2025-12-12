@@ -54,6 +54,8 @@ export default class Game {
         this.levelIndex = 0;
         this.gameOver = false;
         this.victory = false;
+        this.paused = false;
+        this.showingContinue = false;
         this.sessionCoins = 0;
 
         // Achievement tracking for this run
