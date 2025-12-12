@@ -19,18 +19,34 @@ export default class Coin extends Entity {
     }
 
     update(deltaTime) {
-        // === COIN MAGNET EFFECT ===
+        // === COIN MAGNET EFFECT (PREMIUM) ===
         if (this.game && this.game.player && this.game.player.hasCoinMagnet) {
             const player = this.game.player;
             const dx = (player.x + player.width / 2) - (this.x + this.width / 2);
             const dy = (player.y + player.height / 2) - (this.y + this.height / 2);
             const distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < (player.coinMagnetRadius || 150)) {
-                // Attract towards player
-                const magnetStrength = 0.3;
+            // Increased magnet radius: 300 pixels (was 150)
+            const magnetRadius = player.coinMagnetRadius || 300;
+
+            if (distance < magnetRadius && distance > 0) {
+                // Progressive magnet strength: stronger when closer
+                // Base strength: 1.5 (was 0.3)
+                // Boost: gets 3x stronger when within 50% radius
+                const proximityBoost = distance < magnetRadius * 0.5 ? 3.0 : 1.0;
+                const magnetStrength = 1.5 * proximityBoost;
+
+                // Apply attraction force
                 this.speedX += (dx / distance) * magnetStrength * deltaTime;
                 this.speedY += (dy / distance) * magnetStrength * deltaTime;
+
+                // Cap max speed to prevent overshooting
+                const maxSpeed = 15;
+                const currentSpeed = Math.sqrt(this.speedX * this.speedX + this.speedY * this.speedY);
+                if (currentSpeed > maxSpeed) {
+                    this.speedX = (this.speedX / currentSpeed) * maxSpeed;
+                    this.speedY = (this.speedY / currentSpeed) * maxSpeed;
+                }
             }
         }
 
