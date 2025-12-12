@@ -286,8 +286,8 @@ export default class Game3D {
 
         // Virtual joystick input (mobile) - X inverted to match camera view
         if (this.joystickX !== undefined && this.joystickY !== undefined) {
-            moveDir.x -= this.joystickX;  // INVERTED
-            moveDir.z -= this.joystickY;  // INVERTED
+            moveDir.x -= this.joystickX;  // X INVERTED (left/right)
+            moveDir.z += this.joystickY;  // Z NORMAL (up/down)
         }
 
         // Normalize and apply speed (horizontal only)
