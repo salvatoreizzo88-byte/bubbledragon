@@ -389,7 +389,7 @@ export default class Game3D {
 
         this.bubbles.push({
             mesh: bubble,
-            velocity: new BABYLON.Vector3(dirX * 0.15, 0, dirZ * 0.15),
+            velocity: new BABYLON.Vector3(dirX * 0.30, 0, dirZ * 0.30), // FASTER
             lifetime: 300, // 5 seconds
             hasEnemy: false,
             trappedEnemy: null
@@ -423,7 +423,7 @@ export default class Game3D {
                         enemy.mesh.position
                     );
 
-                    if (dist < 1.2) {
+                    if (dist < 2.0) { // Bigger capture radius
                         // Capture enemy!
                         console.log('🎯 Enemy captured in bubble!');
                         bubble.hasEnemy = true;
@@ -435,8 +435,9 @@ export default class Game3D {
                         bubble.mesh.material.diffuseColor = new BABYLON.Color3(1, 0.5, 0.8);
                         bubble.mesh.material.emissiveColor = new BABYLON.Color3(0.5, 0.2, 0.3);
 
-                        // Slow down bubble with enemy
-                        bubble.velocity.scaleInPlace(0.3);
+                        // Slow down and enlarge bubble with enemy
+                        bubble.velocity.scaleInPlace(0.2);
+                        bubble.mesh.scaling = new BABYLON.Vector3(1.5, 1.5, 1.5);
                     }
                 }
             }
@@ -448,7 +449,7 @@ export default class Game3D {
                     this.player.position
                 );
 
-                if (distToPlayer < 1.5) {
+                if (distToPlayer < 2.5) { // Bigger pop radius
                     // Pop bubble and spawn fruit!
                     console.log('🍎 Bubble popped! Fruit spawned!');
                     this.spawnFruit(bubble.mesh.position.clone());
