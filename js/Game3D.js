@@ -54,16 +54,22 @@ export default class Game3D {
         scene.clearColor = new BABYLON.Color4(0.1, 0.05, 0.2, 1);
 
         // === CAMERA ===
-        // Fixed camera from above - no rotation, clear view of arena
-        this.camera = new BABYLON.FreeCamera(
+        // ArcRotate camera - can be rotated by touch/drag
+        this.camera = new BABYLON.ArcRotateCamera(
             'camera',
-            new BABYLON.Vector3(0, 50, 25), // Position: very high for full arena view
+            Math.PI / 2,  // alpha (horizontal angle)
+            Math.PI / 4,  // beta (vertical angle - 45 degrees)
+            40,           // radius (distance from target)
+            new BABYLON.Vector3(0, 2, 0), // target (center of arena)
             scene
         );
-        // Look at center of arena
-        this.camera.setTarget(new BABYLON.Vector3(0, 0, 0));
-        // Disable user camera control (fixed camera)
-        this.camera.inputs.clear();
+        // Enable touch/mouse camera control
+        this.camera.attachControl(this.canvas, true);
+        // Limits
+        this.camera.lowerRadiusLimit = 20;
+        this.camera.upperRadiusLimit = 60;
+        this.camera.lowerBetaLimit = 0.3;   // Min vertical angle
+        this.camera.upperBetaLimit = Math.PI / 2.5; // Max vertical angle
 
         // === LIGHTING ===
         // Ambient light
@@ -466,9 +472,16 @@ export default class Game3D {
             // Skip trapped enemies
             if (enemy.trapped) return;
 
+            // Initialize enemy physics if not exists
+            if (enemy.velocityY === undefined) {
+                enemy.velocityY = 0;
+                enemy.grounded = true;
+            }
+
             // Chase player AI
             const dx = this.player.position.x - enemy.mesh.position.x;
             const dz = this.player.position.z - enemy.mesh.position.z;
+            const dy = this.player.position.y - enemy.mesh.position.y;
             const distance = Math.sqrt(dx * dx + dz * dz);
 
             if (distance > 0.5) {
@@ -481,8 +494,46 @@ export default class Game3D {
                 enemy.mesh.position.z += dirZ * enemy.speed;
             }
 
-            // Keep on ground level
-            enemy.mesh.position.y = 1;
+            // Jump if player is above and enemy is grounded
+            if (dy > 1.5 && enemy.grounded && Math.random() < 0.02) {
+                enemy.velocityY = 0.25; // Jump force
+                enemy.grounded = false;
+            }
+
+            // Apply gravity
+            enemy.velocityY -= 0.01;
+            enemy.mesh.position.y += enemy.velocityY;
+
+            // Platform collision for enemies
+            let onPlatform = false;
+            const enemyFeet = enemy.mesh.position.y - 0.6;
+
+            for (const p of this.platforms) {
+                const platformTop = p.y + p.height / 2;
+                const halfW = p.width / 2;
+                const halfD = p.depth / 2;
+
+                if (enemy.mesh.position.x >= p.x - halfW &&
+                    enemy.mesh.position.x <= p.x + halfW &&
+                    enemy.mesh.position.z >= p.z - halfD &&
+                    enemy.mesh.position.z <= p.z + halfD) {
+
+                    if (enemy.velocityY <= 0 && enemyFeet <= platformTop && enemyFeet > platformTop - 0.5) {
+                        enemy.mesh.position.y = platformTop + 0.6;
+                        enemy.velocityY = 0;
+                        enemy.grounded = true;
+                        onPlatform = true;
+                        break;
+                    }
+                }
+            }
+
+            // Ground collision
+            if (!onPlatform && enemy.mesh.position.y <= 1) {
+                enemy.mesh.position.y = 1;
+                enemy.velocityY = 0;
+                enemy.grounded = true;
+            }
 
             // Stay in bounds (inside walls)
             enemy.mesh.position.x = Math.max(-8, Math.min(8, enemy.mesh.position.x));
