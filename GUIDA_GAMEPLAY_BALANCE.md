@@ -70,10 +70,21 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 - **Boost XP:** Dragocoin per +500 XP → diventa molto attraente dopo livello 20
 - **Come:** Modificare calcolo XP dinamico in `GameState.js`
 
-### 4. Primi Livelli Troppo Difficili
-- **Problema:** Stesso numero nemici dal livello 1
-- **Soluzione:** Meno nemici nei primi 10 livelli
-- **Come:** Modificare `LevelGenerator.js` funzione generazione nemici
+### 4. Difficoltà Livelli - Sistema "Hook" 🎣
+- **Strategia:** Primi livelli facilissimi, poi difficoltà crescente
+- **Effetto:** Utente si sente capace → si aggancia → poi sfida cresce
+
+| Livelli | Nemici | Velocità | Note |
+|---------|--------|----------|------|
+| 1-3 | 1 | 0.6x | Tutorial, impossibile perdere |
+| 4-10 | 2 | 0.8x | Facile, costruisce confidenza |
+| 11-20 | 3 | 1.0x | Normale |
+| 21-35 | 4 | 1.1x | Inizia la sfida |
+| 36-50 | 5 | 1.2x | Difficile |
+| 51-70 | 6 | 1.4x | Molto difficile |
+| 71-100 | 7-8 | 1.6x | Hardcore |
+
+- **Come:** Modificare `LevelGenerator.js` per calcolo dinamico nemici/velocità
 
 ### 5. Nemici Poco Dinamici
 - **Problema:** Pattern prevedibile, cambiano solo direzione
