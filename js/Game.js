@@ -325,6 +325,11 @@ export default class Game {
                 console.log("Spawning fruit at", randomX, 60);
                 this.fruits.push(new Fruit(this, randomX, 60)); // Start below the ceiling
 
+                // Track enemy defeated for stats
+                if (this.gameState) {
+                    this.gameState.incrementStat('enemiesTrapped');
+                }
+
                 this.updateUI();
             }
         });
