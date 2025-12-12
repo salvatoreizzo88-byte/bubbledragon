@@ -89,6 +89,21 @@
             pointer-events: none;
         }
 
+        /* Level Display */
+        #level-display {
+            position: absolute;
+            top: env(safe-area-inset-top, 20px);
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffff00;
+            font-family: Arial, sans-serif;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #ffff00;
+            z-index: 100;
+            pointer-events: none;
+        }
+
         /* Game Over Overlay */
         #game-over {
             display: none;
@@ -207,6 +222,7 @@
 
     <div id="score-display">SCORE: 0</div>
     <div id="lives-display">❤️❤️❤️</div>
+    <div id="level-display">LEVEL 1</div>
 
     <button id="back-btn">← MENU 2D</button>
 
@@ -299,11 +315,13 @@
             // === SCORE UPDATE ===
             const scoreDisplay = document.getElementById('score-display');
             const livesDisplay = document.getElementById('lives-display');
+            const levelDisplay = document.getElementById('level-display');
             const gameOverOverlay = document.getElementById('game-over');
             const finalScore = document.getElementById('final-score');
 
             setInterval(() => {
                 scoreDisplay.textContent = `SCORE: ${game.score}`;
+                levelDisplay.textContent = `LEVEL ${game.levelIndex + 1}`;
 
                 // Update lives (hearts)
                 livesDisplay.textContent = '❤️'.repeat(Math.max(0, game.lives));

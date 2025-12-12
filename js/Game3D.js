@@ -278,6 +278,8 @@ export default class Game3D {
     }
 
     update() {
+        if (this.gameOver) return;
+
         // Player movement
         this.updatePlayer();
 
@@ -292,6 +294,81 @@ export default class Game3D {
 
         // Check collisions
         this.checkCollisions();
+
+        // Check if level complete
+        this.checkLevelComplete();
+    }
+
+    checkLevelComplete() {
+        // Level complete when all enemies are defeated
+        if (this.enemies.length === 0 && !this.levelTransition) {
+            this.levelTransition = true;
+            this.levelIndex++;
+            console.log(`🎉 Level ${this.levelIndex} complete!`);
+
+            // Bonus points
+            this.score += 500 * this.levelIndex;
+
+            // Spawn new enemies after delay
+            setTimeout(() => {
+                this.spawnEnemies();
+                this.levelTransition = false;
+            }, 2000);
+        }
+    }
+
+    spawnEnemies() {
+        // Number of enemies increases with level
+        const numEnemies = Math.min(5 + this.levelIndex, 10);
+
+        // Speed increases with level
+        const baseSpeed = 0.03 + (this.levelIndex * 0.005);
+
+        const positions = [
+            new BABYLON.Vector3(-6, 1, -6),
+            new BABYLON.Vector3(6, 1, -6),
+            new BABYLON.Vector3(-6, 1, 6),
+            new BABYLON.Vector3(6, 1, 6),
+            new BABYLON.Vector3(0, 1, -8),
+            new BABYLON.Vector3(-7, 1, 0),
+            new BABYLON.Vector3(7, 1, 0),
+            new BABYLON.Vector3(0, 1, 7),
+            new BABYLON.Vector3(-4, 1, -4),
+            new BABYLON.Vector3(4, 1, 4),
+        ];
+
+        const colors = [
+            new BABYLON.Color3(0.9, 0.2, 0.2),
+            new BABYLON.Color3(0.2, 0.9, 0.2),
+            new BABYLON.Color3(0.2, 0.2, 0.9),
+            new BABYLON.Color3(0.9, 0.9, 0.2),
+            new BABYLON.Color3(0.9, 0.2, 0.9),
+            new BABYLON.Color3(0.2, 0.9, 0.9),
+            new BABYLON.Color3(0.9, 0.5, 0.2),
+            new BABYLON.Color3(0.5, 0.9, 0.2),
+            new BABYLON.Color3(0.9, 0.2, 0.5),
+            new BABYLON.Color3(0.5, 0.2, 0.9),
+        ];
+
+        for (let i = 0; i < numEnemies; i++) {
+            const enemy = BABYLON.MeshBuilder.CreateSphere(`enemy_l${this.levelIndex}_${i}`, {
+                diameter: 1.2
+            }, this.scene);
+            enemy.position = positions[i % positions.length].clone();
+
+            const mat = new BABYLON.StandardMaterial(`enemyMat_${i}`, this.scene);
+            mat.diffuseColor = colors[i % colors.length];
+            mat.emissiveColor = colors[i % colors.length].scale(0.3);
+            enemy.material = mat;
+
+            this.enemies.push({
+                mesh: enemy,
+                speed: baseSpeed + Math.random() * 0.01,
+                trapped: false
+            });
+        }
+
+        console.log(`👾 Level ${this.levelIndex + 1}: ${numEnemies} enemies spawned!`);
     }
 
     updatePlayer() {
