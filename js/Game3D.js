@@ -498,6 +498,10 @@ export default class Game3D {
             if (len > 0) {
                 this.player.position.x += (rotatedX / len) * this.playerSpeed;
                 this.player.position.z += (rotatedZ / len) * this.playerSpeed;
+
+                // Rotate player to face movement direction
+                const targetAngle = Math.atan2(rotatedX, rotatedZ);
+                this.player.rotation.y = targetAngle;
             }
         }
 
@@ -574,6 +578,9 @@ export default class Game3D {
                 // Move towards player
                 enemy.mesh.position.x += dirX * enemy.speed;
                 enemy.mesh.position.z += dirZ * enemy.speed;
+
+                // Rotate enemy to face movement direction
+                enemy.mesh.rotation.y = Math.atan2(dirX, dirZ);
             }
 
             // Jump if player is above and enemy is grounded
