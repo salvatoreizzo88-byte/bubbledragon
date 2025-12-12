@@ -1161,7 +1161,6 @@ window.addEventListener('load', () => {
                     <div class="leaderboard-rank ${rankClass}">${rankIcon}</div>
                     <div class="leaderboard-name">${entry.username}</div>
                     <div class="leaderboard-score">🐲 Lv.${entry.dragonLevel || 1}</div>
-                    <div class="leaderboard-level">⭐${entry.maxLevel || 1}</div>
                 `;
                 leaderboardList.appendChild(row);
             });
