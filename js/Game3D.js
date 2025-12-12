@@ -205,19 +205,44 @@ export default class Game3D {
     }
 
     createPlayer(scene) {
-        // Placeholder: green dragon as a capsule
-        const player = BABYLON.MeshBuilder.CreateCapsule('player', {
+        // Create placeholder while loading model
+        const placeholder = BABYLON.MeshBuilder.CreateCapsule('player', {
             height: 1.5,
             radius: 0.4
         }, scene);
-        player.position = new BABYLON.Vector3(0, 1, 5);
+        placeholder.position = new BABYLON.Vector3(0, 1, 5);
+        placeholder.isVisible = false; // Hide placeholder
 
-        const playerMat = new BABYLON.StandardMaterial('playerMat', scene);
-        playerMat.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.3);
-        playerMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
-        player.material = playerMat;
+        this.player = placeholder;
 
-        this.player = player;
+        // Load Dragon 3D model
+        BABYLON.SceneLoader.ImportMesh(
+            "",
+            "assets/models/",
+            "Dragon.glb",
+            scene,
+            (meshes) => {
+                console.log('🐉 Dragon model loaded!');
+
+                // Get root mesh
+                const dragonRoot = meshes[0];
+                dragonRoot.parent = placeholder;
+                dragonRoot.position = new BABYLON.Vector3(0, -0.75, 0);
+                dragonRoot.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+
+                // Store reference for rotation
+                this.playerModel = dragonRoot;
+            },
+            null,
+            (scene, message, exception) => {
+                console.warn('Dragon model failed to load, using placeholder:', message);
+                placeholder.isVisible = true;
+                const playerMat = new BABYLON.StandardMaterial('playerMat', scene);
+                playerMat.diffuseColor = new BABYLON.Color3(0.2, 0.8, 0.3);
+                playerMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
+                placeholder.material = playerMat;
+            }
+        );
 
         // === PHYSICS CONFIG ===
         this.playerSpeed = 0.10;      // Reduced for better control
@@ -274,23 +299,64 @@ export default class Game3D {
             new BABYLON.Color3(0.9, 0.2, 0.9), // Magenta
         ];
 
+        // Create placeholders first
         enemyPositions.forEach((pos, i) => {
-            const enemy = BABYLON.MeshBuilder.CreateSphere(`enemy${i}`, {
+            const placeholder = BABYLON.MeshBuilder.CreateSphere(`enemy${i}`, {
                 diameter: 1.2
             }, scene);
-            enemy.position = pos;
-
-            const enemyMat = new BABYLON.StandardMaterial(`enemyMat${i}`, scene);
-            enemyMat.diffuseColor = enemyColors[i];
-            enemyMat.emissiveColor = enemyColors[i].scale(0.3);
-            enemy.material = enemyMat;
+            placeholder.position = pos;
+            placeholder.isVisible = false;
 
             this.enemies.push({
-                mesh: enemy,
-                speed: 0.03 + Math.random() * 0.02, // Random speed 0.03-0.05
-                trapped: false
+                mesh: placeholder,
+                speed: 0.03 + Math.random() * 0.02,
+                trapped: false,
+                colorIndex: i
             });
         });
+
+        // Load Slime model and attach to each enemy
+        BABYLON.SceneLoader.ImportMesh(
+            "",
+            "assets/models/",
+            "Slime.glb",
+            scene,
+            (meshes) => {
+                console.log('👾 Slime model loaded!');
+
+                const slimeRoot = meshes[0];
+                slimeRoot.setEnabled(false); // Hide original
+
+                // Clone for each enemy
+                this.enemies.forEach((enemy, i) => {
+                    const clone = slimeRoot.clone(`slime${i}`);
+                    clone.parent = enemy.mesh;
+                    clone.position = new BABYLON.Vector3(0, -0.6, 0);
+                    clone.scaling = new BABYLON.Vector3(0.8, 0.8, 0.8);
+                    clone.setEnabled(true);
+
+                    // Tint with color
+                    if (clone.material) {
+                        const mat = clone.material.clone(`slimeMat${i}`);
+                        mat.albedoColor = enemyColors[i % enemyColors.length];
+                        clone.material = mat;
+                    }
+
+                    enemy.model = clone;
+                });
+            },
+            null,
+            (scene, message) => {
+                console.warn('Slime model failed, showing placeholders:', message);
+                this.enemies.forEach((enemy, i) => {
+                    enemy.mesh.isVisible = true;
+                    const mat = new BABYLON.StandardMaterial(`enemyMat${i}`, scene);
+                    mat.diffuseColor = enemyColors[i % enemyColors.length];
+                    mat.emissiveColor = enemyColors[i % enemyColors.length].scale(0.3);
+                    enemy.mesh.material = mat;
+                });
+            }
+        );
 
         console.log(`👾 ${enemyPositions.length} enemies created!`);
     }
