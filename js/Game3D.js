@@ -200,19 +200,42 @@ export default class Game3D {
         player.material = playerMat;
 
         this.player = player;
-        this.playerSpeed = 0.15;
-        this.playerVelocity = new BABYLON.Vector3(0, 0, 0);
+
+        // === PHYSICS CONFIG ===
+        this.playerSpeed = 0.25;      // Increased from 0.15
+        this.jumpForce = 0.35;        // Jump strength
+        this.gravity = 0.015;         // Gravity strength
+        this.velocityY = 0;           // Vertical velocity
+        this.grounded = true;         // Is player on ground?
+        this.groundLevel = 1;         // Y position of ground
+
+        // Joystick input (set from game3d.html)
+        this.joystickX = 0;
+        this.joystickY = 0;
 
         // Input handling
         this.keys = {};
         window.addEventListener('keydown', (e) => {
             this.keys[e.key] = true;
+            // Keyboard jump
+            if (e.code === 'KeyW' || e.key === 'ArrowUp') {
+                this.jump();
+            }
         });
         window.addEventListener('keyup', (e) => {
             this.keys[e.key] = false;
         });
 
-        console.log('🐉 Player created');
+        console.log('🐉 Player created with jump physics');
+    }
+
+    // Jump function - called from button or keyboard
+    jump() {
+        if (this.grounded) {
+            this.velocityY = this.jumpForce;
+            this.grounded = false;
+            console.log('🦘 Jump!');
+        }
     }
 
     createTestEnemy(scene) {
@@ -252,10 +275,7 @@ export default class Game3D {
 
         const moveDir = new BABYLON.Vector3(0, 0, 0);
 
-        // WASD or Arrow keys
-        if (this.keys['ArrowUp'] || this.keys['w'] || this.keys['W']) {
-            moveDir.z -= 1;
-        }
+        // WASD or Arrow keys (no vertical movement from up arrow, that's jump)
         if (this.keys['ArrowDown'] || this.keys['s'] || this.keys['S']) {
             moveDir.z += 1;
         }
@@ -272,20 +292,37 @@ export default class Game3D {
             moveDir.z += this.joystickY;
         }
 
-        // Normalize and apply speed
+        // Normalize and apply speed (horizontal only)
         if (moveDir.length() > 0) {
             moveDir.normalize();
             moveDir.scaleInPlace(this.playerSpeed);
-            this.player.position.addInPlace(moveDir);
+            this.player.position.x += moveDir.x;
+            this.player.position.z += moveDir.z;
         }
 
-        // Keep player in bounds
+        // === VERTICAL PHYSICS (Gravity + Jump) ===
+        // Apply gravity
+        this.velocityY -= this.gravity;
+        this.player.position.y += this.velocityY;
+
+        // Ground collision (simple floor at groundLevel)
+        if (this.player.position.y <= this.groundLevel) {
+            this.player.position.y = this.groundLevel;
+            this.velocityY = 0;
+            this.grounded = true;
+        }
+
+        // Keep player in bounds (horizontal)
         const bounds = 9;
         this.player.position.x = Math.max(-bounds, Math.min(bounds, this.player.position.x));
         this.player.position.z = Math.max(-bounds, Math.min(bounds, this.player.position.z));
 
-        // Update camera target
-        this.camera.target = this.player.position.clone();
+        // Update camera target (smooth follow)
+        this.camera.target = BABYLON.Vector3.Lerp(
+            this.camera.target,
+            this.player.position,
+            0.1
+        );
     }
 
     updateEnemies() {
