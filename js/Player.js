@@ -20,6 +20,7 @@ export default class Player extends Entity {
         this.shootInterval = this.baseShootInterval;
         this.bubbleShootDuration = 20; // Default range
         this.invulnerableTimer = 0;
+        this.lives = 3; // Starting lives
 
         // Player Level System
         this.xp = 0;

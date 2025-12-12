@@ -68,7 +68,8 @@ export default class Game {
 
         this.startLevel();
 
-        // Apply extra lives from achievements (only on game reset, not level reset)
+        // Reset lives to 3 and apply extra lives from achievements
+        this.player.lives = 3;
         if (this.player.achievementExtraLives > 0) {
             this.player.lives += this.player.achievementExtraLives;
             console.log(`+${this.player.achievementExtraLives} vite extra da achievement!`);
