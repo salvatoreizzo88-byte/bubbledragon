@@ -409,10 +409,10 @@ export default class Game3D {
             inputX += 1;
         }
 
-        // Virtual joystick input (mobile)
+        // Virtual joystick input (mobile) - INVERTED to fix directions
         if (this.joystickX !== undefined && this.joystickY !== undefined) {
-            inputX += this.joystickX;
-            inputZ -= this.joystickY;
+            inputX -= this.joystickX;
+            inputZ += this.joystickY;
         }
 
         // Transform input relative to camera direction
