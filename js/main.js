@@ -1473,6 +1473,7 @@ window.addEventListener('load', () => {
             game.showingContinue = false;
             game.paused = false;
             game.restartLevel();
+            game.updateUI(); // Force UI update to show new lives count
         }
     }
 

@@ -51,6 +51,11 @@ canvas {
     text-shadow: 2px 2px 0 #000;
 }
 
+#lives {
+    color: #ff4444;
+    font-size: 14px;
+}
+
 /* --- MAIN MENU --- */
 #start-screen {
     position: absolute;
