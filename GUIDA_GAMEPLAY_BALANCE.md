@@ -42,12 +42,13 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 - **Nota:** I 15 secondi servono per raccogliere i frutti caduti dopo aver sconfitto i nemici
 - **Status:** Valore corretto, NON modificare
 
-### 2. Sistema Vite - Opzione "Stile Sonic" 💰
+### 2. Sistema Vite - Opzione "Continue" �🎬
 - **Problema:** 3 vite e poi game over immediato può frustrare
-- **Soluzione:** Quando perdi tutte le vite, puoi "continuare" spendendo monete
-- **Meccanica:** Ogni continue costa 15 monete e ripristina 1 vita
-- **Game Over:** Arriva solo se non hai abbastanza monete
-- **Come:** Modificare logica in `Game.js` funzione game over (riga ~160)
+- **Soluzione:** Quando perdi tutte le vite, puoi "continuare" con 2 opzioni:
+  - **Opzione 1:** Spendi **5 Dragocoin** → riprendi con 1 vita
+  - **Opzione 2:** Guarda **pubblicità** → riprendi con 1 vita (GRATIS)
+- **Game Over:** Arriva solo se rifiuti entrambe le opzioni
+- **Come:** Modificare logica in `Game.js` + creare UI schermata continue
 - **Nota:** I checkpoint non servono perché il gioco è già a livelli sbloccabili
 
 ### 3. Progressione XP Troppo Lenta
