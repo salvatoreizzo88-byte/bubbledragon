@@ -550,6 +550,7 @@ export default class Game {
                         return; // Exit checkCollisions function completely
                     } else {
                         this.player.reset();
+                        this.player.invulnerableTimer = 180; // 3 seconds invulnerability after death
                         if (this.gameState) {
                             this.player.applyPowerups(this.gameState);
                         }

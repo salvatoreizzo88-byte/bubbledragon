@@ -102,7 +102,7 @@ export default class Player extends Entity {
         this.speedY = 0;
         this.facing = 1;
         this.bubbleShootDuration = 20;
-        this.invulnerableTimer = 180; // 3 seconds invulnerability
+        // invulnerableTimer NOT set here - only given explicitly after death
         this.grounded = false;
         this.canDoubleJump = false;
     }
