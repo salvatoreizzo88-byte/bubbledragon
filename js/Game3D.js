@@ -264,6 +264,12 @@ export default class Game3D {
         // Enemy AI (simple patrol)
         this.updateEnemies();
 
+        // Update bubbles (movement, collision, capture)
+        this.updateBubbles();
+
+        // Update fruits (collection, expiration)
+        this.updateFruits();
+
         // Check collisions
         this.checkCollisions();
     }
@@ -342,7 +348,7 @@ export default class Game3D {
                 enemy.mesh.position
             );
 
-            if (dist < 1.2) {
+            if (dist < 1.2 && !enemy.trapped) {
                 console.log('💥 Player hit enemy!');
                 // TODO: Implement damage/death
             }
@@ -352,28 +358,185 @@ export default class Game3D {
     // Called when shooting bubble
     shootBubble() {
         const bubble = BABYLON.MeshBuilder.CreateSphere('bubble', {
-            diameter: 0.8
+            diameter: 1.0
         }, this.scene);
 
         bubble.position = this.player.position.clone();
         bubble.position.y += 0.5;
 
         const bubbleMat = new BABYLON.StandardMaterial('bubbleMat', this.scene);
-        bubbleMat.diffuseColor = new BABYLON.Color3(0.3, 0.7, 1);
-        bubbleMat.alpha = 0.6;
-        bubbleMat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.5);
+        bubbleMat.diffuseColor = new BABYLON.Color3(0.3, 0.8, 1);
+        bubbleMat.alpha = 0.5;
+        bubbleMat.emissiveColor = new BABYLON.Color3(0.2, 0.5, 0.8);
+        bubbleMat.specularColor = new BABYLON.Color3(1, 1, 1);
         bubble.material = bubbleMat;
 
-        // Direction player is facing (simplified: always forward -Z)
-        const direction = new BABYLON.Vector3(0, 0, -1);
+        // Direction based on last movement (joystick or keys)
+        let dirX = -this.joystickX || 0;
+        let dirZ = this.joystickY || 0;
+
+        // If no joystick input, shoot forward
+        if (Math.abs(dirX) < 0.1 && Math.abs(dirZ) < 0.1) {
+            dirZ = -1; // Default: shoot forward (up on screen)
+        }
+
+        // Normalize direction
+        const len = Math.sqrt(dirX * dirX + dirZ * dirZ);
+        if (len > 0) {
+            dirX /= len;
+            dirZ /= len;
+        }
 
         this.bubbles.push({
             mesh: bubble,
-            velocity: direction.scale(0.2),
-            lifetime: 180 // frames
+            velocity: new BABYLON.Vector3(dirX * 0.15, 0, dirZ * 0.15),
+            lifetime: 300, // 5 seconds
+            hasEnemy: false,
+            trappedEnemy: null
         });
 
         console.log('🫧 Bubble shot!');
+    }
+
+    // Update all bubbles - movement and collision
+    updateBubbles() {
+        for (let i = this.bubbles.length - 1; i >= 0; i--) {
+            const bubble = this.bubbles[i];
+
+            // Move bubble
+            bubble.mesh.position.addInPlace(bubble.velocity);
+
+            // Bubble floats up slightly
+            bubble.mesh.position.y += 0.01;
+
+            // Reduce lifetime
+            bubble.lifetime--;
+
+            // Check collision with enemies (if bubble doesn't have enemy yet)
+            if (!bubble.hasEnemy) {
+                for (let j = 0; j < this.enemies.length; j++) {
+                    const enemy = this.enemies[j];
+                    if (enemy.trapped) continue;
+
+                    const dist = BABYLON.Vector3.Distance(
+                        bubble.mesh.position,
+                        enemy.mesh.position
+                    );
+
+                    if (dist < 1.2) {
+                        // Capture enemy!
+                        console.log('🎯 Enemy captured in bubble!');
+                        bubble.hasEnemy = true;
+                        bubble.trappedEnemy = enemy;
+                        enemy.trapped = true;
+                        enemy.mesh.setEnabled(false); // Hide enemy
+
+                        // Change bubble color to show it has enemy
+                        bubble.mesh.material.diffuseColor = new BABYLON.Color3(1, 0.5, 0.8);
+                        bubble.mesh.material.emissiveColor = new BABYLON.Color3(0.5, 0.2, 0.3);
+
+                        // Slow down bubble with enemy
+                        bubble.velocity.scaleInPlace(0.3);
+                    }
+                }
+            }
+
+            // If bubble has enemy, check if player touches it to pop
+            if (bubble.hasEnemy) {
+                const distToPlayer = BABYLON.Vector3.Distance(
+                    bubble.mesh.position,
+                    this.player.position
+                );
+
+                if (distToPlayer < 1.5) {
+                    // Pop bubble and spawn fruit!
+                    console.log('🍎 Bubble popped! Fruit spawned!');
+                    this.spawnFruit(bubble.mesh.position.clone());
+
+                    // Remove enemy from game
+                    const enemyIndex = this.enemies.indexOf(bubble.trappedEnemy);
+                    if (enemyIndex > -1) {
+                        this.enemies.splice(enemyIndex, 1);
+                    }
+
+                    // Remove bubble
+                    bubble.mesh.dispose();
+                    this.bubbles.splice(i, 1);
+                    continue;
+                }
+            }
+
+            // Remove bubble if lifetime expired or out of bounds
+            if (bubble.lifetime <= 0 ||
+                Math.abs(bubble.mesh.position.x) > 15 ||
+                Math.abs(bubble.mesh.position.z) > 15 ||
+                bubble.mesh.position.y > 15) {
+
+                // If bubble had enemy, release it
+                if (bubble.trappedEnemy) {
+                    bubble.trappedEnemy.trapped = false;
+                    bubble.trappedEnemy.mesh.setEnabled(true);
+                    bubble.trappedEnemy.mesh.position = bubble.mesh.position.clone();
+                }
+
+                bubble.mesh.dispose();
+                this.bubbles.splice(i, 1);
+            }
+        }
+    }
+
+    // Spawn fruit when bubble pops
+    spawnFruit(position) {
+        const fruit = BABYLON.MeshBuilder.CreateSphere('fruit', {
+            diameter: 0.6
+        }, this.scene);
+        fruit.position = position;
+
+        const fruitMat = new BABYLON.StandardMaterial('fruitMat', this.scene);
+        fruitMat.diffuseColor = new BABYLON.Color3(1, 0.3, 0.3); // Red apple
+        fruitMat.emissiveColor = new BABYLON.Color3(0.3, 0.1, 0.1);
+        fruit.material = fruitMat;
+
+        this.fruits.push({
+            mesh: fruit,
+            lifetime: 600 // 10 seconds
+        });
+
+        this.score += 100;
+        console.log(`🍎 Score: ${this.score}`);
+    }
+
+    // Update fruits
+    updateFruits() {
+        for (let i = this.fruits.length - 1; i >= 0; i--) {
+            const fruit = this.fruits[i];
+
+            // Check if player collects fruit
+            const dist = BABYLON.Vector3.Distance(
+                this.player.position,
+                fruit.mesh.position
+            );
+
+            if (dist < 1.0) {
+                console.log('🍎 Fruit collected!');
+                this.score += 100;
+                fruit.mesh.dispose();
+                this.fruits.splice(i, 1);
+                continue;
+            }
+
+            // Fruit falls slowly
+            if (fruit.mesh.position.y > 0.5) {
+                fruit.mesh.position.y -= 0.02;
+            }
+
+            // Remove if expired
+            fruit.lifetime--;
+            if (fruit.lifetime <= 0) {
+                fruit.mesh.dispose();
+                this.fruits.splice(i, 1);
+            }
+        }
     }
 
     dispose() {
