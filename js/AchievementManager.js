@@ -454,16 +454,46 @@ export default class AchievementManager {
     checkStatAchievements() {
         const stats = this.gameState.stats || {};
 
+        // Map Italian stat names (used in achievements) to English (used in GameState)
+        // This maps BOTH stats object fields AND direct gameState fields
+        const statMapping = {
+            // Stats object mappings
+            nemiciCatturati: 'enemiesTrapped',
+            frutteRaccolte: 'totalFruitCollected',
+            moneteGuadagnate: 'totalCoinsEarned',
+            partiteGiocate: 'gamesPlayed',
+            livelliCompletati: 'levelsCompleted',
+            powerupRaccolti: 'powerupsCollected',
+            mortiTotali: 'totalDeaths',
+            livelloVelocita: 'speedLevel',
+            // Direct gameState field mappings
+            livelloGiocatore: 'playerLevel',
+            serieAccessi: 'loginStreak',
+            puntiXP: 'playerXP'
+            // Note: 'dragocoin' is same in both, no mapping needed
+        };
+
         Object.values(ACHIEVEMENTS).forEach(achievement => {
             if (achievement.requirement && achievement.requirement.stat) {
-                let statValue;
-                // Check both stats object and gameState directly
-                if (stats[achievement.requirement.stat] !== undefined) {
-                    statValue = stats[achievement.requirement.stat];
-                } else if (this.gameState[achievement.requirement.stat] !== undefined) {
-                    statValue = this.gameState[achievement.requirement.stat];
-                } else {
-                    statValue = 0;
+                const reqStat = achievement.requirement.stat;
+                let statValue = 0;
+
+                // Try mapped name first (for stats object)
+                const mappedStat = statMapping[reqStat];
+                if (mappedStat && stats[mappedStat] !== undefined) {
+                    statValue = stats[mappedStat];
+                }
+                // Then try original Italian name in stats
+                else if (stats[reqStat] !== undefined) {
+                    statValue = stats[reqStat];
+                }
+                // Then try gameState directly (for playerLevel, dragocoin, loginStreak etc)
+                else if (this.gameState[reqStat] !== undefined) {
+                    statValue = this.gameState[reqStat];
+                }
+                // Also check mapped name in gameState
+                else if (mappedStat && this.gameState[mappedStat] !== undefined) {
+                    statValue = this.gameState[mappedStat];
                 }
 
                 if (statValue >= achievement.requirement.value) {
