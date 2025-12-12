@@ -79,13 +79,25 @@ window.addEventListener('load', () => {
     // DOM ELEMENTS - Declared early for scope availability
     const authBtn = document.getElementById('auth-btn');
     const authModal = document.getElementById('auth-modal');
+
+    // Login view elements
+    const loginView = document.getElementById('login-view');
     const authEmail = document.getElementById('auth-email');
     const authPassword = document.getElementById('auth-password');
-    const authConfirmPassword = document.getElementById('auth-confirm-password');
     const authStatus = document.getElementById('auth-status');
     const btnLogin = document.getElementById('btn-login');
-    const btnRegister = document.getElementById('btn-register');
     const btnAuthCancel = document.getElementById('btn-auth-cancel');
+    const switchToRegister = document.getElementById('switch-to-register');
+
+    // Register view elements
+    const registerView = document.getElementById('register-view');
+    const registerEmail = document.getElementById('register-email');
+    const registerPassword = document.getElementById('register-password');
+    const registerConfirmPassword = document.getElementById('register-confirm-password');
+    const registerStatus = document.getElementById('register-status');
+    const btnRegister = document.getElementById('btn-register');
+    const btnRegisterCancel = document.getElementById('btn-register-cancel');
+    const switchToLogin = document.getElementById('switch-to-login');
 
     // UI Elements
     const userDisplay = document.getElementById('user-display');
@@ -429,39 +441,87 @@ window.addEventListener('load', () => {
         });
     }
 
-    // CANCEL button for auth modal
+    // CANCEL button for login view
     if (btnAuthCancel) {
         btnAuthCancel.addEventListener('click', () => {
             if (authModal) authModal.style.display = 'none';
             if (authEmail) authEmail.value = '';
             if (authPassword) authPassword.value = '';
-            if (authConfirmPassword) authConfirmPassword.value = '';
             if (authStatus) authStatus.innerText = '';
+            // Reset to login view
+            if (loginView) loginView.style.display = 'flex';
+            if (registerView) registerView.style.display = 'none';
+        });
+    }
+
+    // CANCEL button for register view
+    if (btnRegisterCancel) {
+        btnRegisterCancel.addEventListener('click', () => {
+            if (authModal) authModal.style.display = 'none';
+            if (registerEmail) registerEmail.value = '';
+            if (registerPassword) registerPassword.value = '';
+            if (registerConfirmPassword) registerConfirmPassword.value = '';
+            if (registerStatus) registerStatus.innerText = '';
+            // Reset to login view
+            if (loginView) loginView.style.display = 'flex';
+            if (registerView) registerView.style.display = 'none';
+        });
+    }
+
+    // SWITCH to Register view
+    if (switchToRegister) {
+        switchToRegister.addEventListener('click', () => {
+            if (loginView) loginView.style.display = 'none';
+            if (registerView) registerView.style.display = 'flex';
+            if (authStatus) authStatus.innerText = '';
+        });
+    }
+
+    // SWITCH to Login view
+    if (switchToLogin) {
+        switchToLogin.addEventListener('click', () => {
+            if (loginView) loginView.style.display = 'flex';
+            if (registerView) registerView.style.display = 'none';
+            if (registerStatus) registerStatus.innerText = '';
         });
     }
 
     if (btnRegister) {
         btnRegister.addEventListener('click', async () => {
-            const email = authEmail.value.trim();
-            const password = authPassword.value.trim();
-            const confirm = authConfirmPassword ? authConfirmPassword.value.trim() : '';
+            const email = registerEmail ? registerEmail.value.trim() : '';
+            const password = registerPassword ? registerPassword.value.trim() : '';
+            const confirm = registerConfirmPassword ? registerConfirmPassword.value.trim() : '';
             // Use current local username
             const username = userManager.getUsername();
 
             if (!email || !password || !confirm) {
-                authStatus.style.color = 'red';
-                authStatus.innerText = "All fields required";
+                if (registerStatus) {
+                    registerStatus.style.color = '#ff4444';
+                    registerStatus.innerText = "Compila tutti i campi";
+                }
                 return;
             }
 
             if (password !== confirm) {
-                authStatus.style.color = 'red';
-                authStatus.innerText = "Passwords do not match";
+                if (registerStatus) {
+                    registerStatus.style.color = '#ff4444';
+                    registerStatus.innerText = "Le password non coincidono";
+                }
                 return;
             }
 
-            authStatus.style.color = 'yellow';
-            authStatus.innerText = "REGISTERING...";
+            if (password.length < 6) {
+                if (registerStatus) {
+                    registerStatus.style.color = '#ff4444';
+                    registerStatus.innerText = "Password min 6 caratteri";
+                }
+                return;
+            }
+
+            if (registerStatus) {
+                registerStatus.style.color = 'yellow';
+                registerStatus.innerText = "REGISTRAZIONE...";
+            }
 
             // Migrate ALL guest data to the new account
             const currentData = {
@@ -489,8 +549,10 @@ window.addEventListener('load', () => {
 
                 await handleAuthSuccess(res.user, currentData);
             } else {
-                authStatus.style.color = 'red';
-                authStatus.innerText = res.error;
+                if (registerStatus) {
+                    registerStatus.style.color = '#ff4444';
+                    registerStatus.innerText = res.error;
+                }
             }
         });
     }

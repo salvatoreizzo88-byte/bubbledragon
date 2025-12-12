@@ -261,25 +261,77 @@
                 <!-- Auth Modal (hidden) -->
                 <div id="auth-modal"
                     style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; z-index: 60;">
-                    <h2 style="color: #00ffff; font-family: 'Press Start 2P'; margin-bottom: 15px; font-size: 14px;">
-                        ACCOUNT</h2>
-                    <input type="email" id="auth-email" placeholder="Email"
-                        style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 8px; font-size: 10px; width: 220px;">
-                    <input type="password" id="auth-password" placeholder="Password"
-                        style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 8px; font-size: 10px; width: 220px;">
-                    <input type="password" id="auth-confirm-password" placeholder="Conferma"
-                        style="font-family: 'Press Start 2P'; margin-bottom: 10px; padding: 8px; font-size: 10px; width: 220px;">
-                    <div id="auth-status"
-                        style="color: red; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 10px; text-align: center; max-width: 240px; min-height: 16px;">
-                    </div>
-                    <div style="display: flex; gap: 10px; margin-bottom: 8px;">
+
+                    <!-- LOGIN VIEW -->
+                    <div id="login-view" style="display: flex; flex-direction: column; align-items: center;">
+                        <h2
+                            style="color: #00ffff; font-family: 'Press Start 2P'; margin-bottom: 20px; font-size: 16px;">
+                            🔐 ACCEDI</h2>
+
+                        <input type="email" id="auth-email" placeholder="Email"
+                            style="font-family: 'Press Start 2P'; margin-bottom: 12px; padding: 12px; font-size: 10px; width: 240px; border-radius: 8px; border: 2px solid #7C4DFF; background: #1a1a2e; color: white;">
+
+                        <input type="password" id="auth-password" placeholder="Password"
+                            style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 12px; font-size: 10px; width: 240px; border-radius: 8px; border: 2px solid #7C4DFF; background: #1a1a2e; color: white;">
+
+                        <div id="auth-status"
+                            style="color: #ff4444; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 10px; text-align: center; max-width: 240px; min-height: 16px;">
+                        </div>
+
+                        <!-- Link Registrati -->
+                        <p id="switch-to-register"
+                            style="color: #aaa; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 15px; cursor: pointer; text-decoration: underline;">
+                            Non hai un account? <span style="color: #00ffff;">Registrati</span>
+                        </p>
+
+                        <!-- Bottone Accedi -->
                         <button id="btn-login" class="menu-btn"
-                            style="font-size: 10px; padding: 8px 15px;">ACCEDI</button>
-                        <button id="btn-register" class="menu-btn"
-                            style="font-size: 10px; padding: 8px 15px;">REGISTRA</button>
+                            style="font-size: 12px; padding: 12px 40px; background: linear-gradient(135deg, #7C4DFF, #00ffff); border: none; border-radius: 10px; color: white; margin-bottom: 10px;">
+                            ACCEDI
+                        </button>
+
+                        <button id="btn-auth-cancel" class="menu-btn"
+                            style="background: #333; font-size: 10px; padding: 8px 20px; border-radius: 8px; border: 1px solid #555;">
+                            ANNULLA
+                        </button>
                     </div>
-                    <button id="btn-auth-cancel" class="menu-btn"
-                        style="background: #555; font-size: 10px; padding: 8px 15px;">ANNULLA</button>
+
+                    <!-- REGISTER VIEW (hidden by default) -->
+                    <div id="register-view" style="display: none; flex-direction: column; align-items: center;">
+                        <h2
+                            style="color: #ff00de; font-family: 'Press Start 2P'; margin-bottom: 20px; font-size: 16px;">
+                            ✨ REGISTRATI</h2>
+
+                        <input type="email" id="register-email" placeholder="Email"
+                            style="font-family: 'Press Start 2P'; margin-bottom: 12px; padding: 12px; font-size: 10px; width: 240px; border-radius: 8px; border: 2px solid #ff00de; background: #1a1a2e; color: white;">
+
+                        <input type="password" id="register-password" placeholder="Password"
+                            style="font-family: 'Press Start 2P'; margin-bottom: 12px; padding: 12px; font-size: 10px; width: 240px; border-radius: 8px; border: 2px solid #ff00de; background: #1a1a2e; color: white;">
+
+                        <input type="password" id="register-confirm-password" placeholder="Conferma Password"
+                            style="font-family: 'Press Start 2P'; margin-bottom: 8px; padding: 12px; font-size: 10px; width: 240px; border-radius: 8px; border: 2px solid #ff00de; background: #1a1a2e; color: white;">
+
+                        <div id="register-status"
+                            style="color: #ff4444; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 10px; text-align: center; max-width: 240px; min-height: 16px;">
+                        </div>
+
+                        <!-- Link Torna al Login -->
+                        <p id="switch-to-login"
+                            style="color: #aaa; font-family: 'Press Start 2P'; font-size: 8px; margin-bottom: 15px; cursor: pointer; text-decoration: underline;">
+                            Hai già un account? <span style="color: #ff00de;">Accedi</span>
+                        </p>
+
+                        <!-- Bottone Registrati -->
+                        <button id="btn-register" class="menu-btn"
+                            style="font-size: 12px; padding: 12px 40px; background: linear-gradient(135deg, #ff00de, #7C4DFF); border: none; border-radius: 10px; color: white; margin-bottom: 10px;">
+                            REGISTRATI
+                        </button>
+
+                        <button id="btn-register-cancel" class="menu-btn"
+                            style="background: #333; font-size: 10px; padding: 8px 20px; border-radius: 8px; border: 1px solid #555;">
+                            ANNULLA
+                        </button>
+                    </div>
                 </div>
             </div>
 
