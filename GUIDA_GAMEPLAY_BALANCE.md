@@ -42,11 +42,13 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 - **Nota:** I 15 secondi servono per raccogliere i frutti caduti dopo aver sconfitto i nemici
 - **Status:** Valore corretto, NON modificare
 
-### 2. Sistema Vite Frustrante
-- **Problema:** 3 vite e poi game over totale
-- **Soluzione A:** Vite infinite + perdita monete/XP
-- **Soluzione B:** Checkpoint ogni 5 livelli
-- **Come:** Modificare logica in `Game.js` funzione `update()` (riga ~160)
+### 2. Sistema Vite - Opzione "Stile Sonic" 💰
+- **Problema:** 3 vite e poi game over immediato può frustrare
+- **Soluzione:** Quando perdi tutte le vite, puoi "continuare" spendendo monete
+- **Meccanica:** Ogni continue costa 15 monete e ripristina 1 vita
+- **Game Over:** Arriva solo se non hai abbastanza monete
+- **Come:** Modificare logica in `Game.js` funzione game over (riga ~160)
+- **Nota:** I checkpoint non servono perché il gioco è già a livelli sbloccabili
 
 ### 3. Progressione XP Troppo Lenta
 - **Problema:** 500 XP fissi per livello, scoraggia nuovi giocatori
@@ -87,28 +89,42 @@ trappedDuration: 420, // Era 300 (5s) → Ora 420 (7s)
 
 ---
 
-## 🎯 Sistema Vite Moderno (Proposta)
+## 🎯 Sistema Vite "Stile Sonic" (Proposta)
 
-### Opzione A: Vite Infinite con Penalità
+### Come Funziona
+1. Player ha 3 vite normali
+2. Quando perde l'ultima vita, appare schermata "CONTINUE?"
+3. Se ha ≥15 monete → può continuare (perde 15 monete, torna a 1 vita)
+4. Se ha <15 monete → GAME OVER definitivo
+
+### Implementazione
 ```javascript
-// In Game.js, quando player muore:
+// In Game.js, quando player.lives <= 0:
 if (this.player.lives <= 0) {
-    // Invece di game over:
-    this.player.lives = 3; // Reset vite
-    this.gameState.spendCoins(50); // Penalità in monete
-    this.restartLevel(); // Riprova stesso livello
+    // Prima di game over, controlla se può continuare
+    if (this.gameState.coins >= 15) {
+        // Mostra schermata "CONTINUE? Costa 15 monete"
+        this.showContinueScreen();
+    } else {
+        // Non ha abbastanza monete = game over
+        this.gameOver = true;
+        document.getElementById('game-over-screen').style.display = 'flex';
+    }
+}
+
+// Funzione continue:
+continueGame() {
+    this.gameState.spendCoins(15);
+    this.player.lives = 1;
+    this.restartLevel();
 }
 ```
 
-### Opzione B: Checkpoint System
-```javascript
-// Ogni 5 livelli = checkpoint
-if (this.levelIndex % 5 === 0) {
-    this.gameState.checkpoint = this.levelIndex;
-}
-
-// Quando muori, riparti dal checkpoint invece che dal livello 1
-```
+### Vantaggi
+- ✅ Mantiene la sfida del game over
+- ✅ Dà una seconda chance a chi ha giocato bene (ha monete)
+- ✅ Incentiva raccogliere monete durante il gioco
+- ✅ Non snatura il gameplay originale
 
 ---
 
