@@ -84,23 +84,14 @@ export default class Enemy extends Entity {
             if (this.jumpCooldown > 0) this.jumpCooldown -= deltaTime;
             this.chaseUpdateTimer -= deltaTime;
 
-            // Track if we were blocked by wall BEFORE physics
-            const wasBlockedX = this.speedX === 0;
+            // Track if we were blocked by wall (speedX was reset to 0 by collision system last frame)
+            const wasBlockedByWall = this.speedX === 0;
 
-            // Save position before physics for grounded detection
-            const prevY = this.y;
-            const prevX = this.x;
-
-            // Apply Physics
+            // Apply Physics (gravity)
             this.speedY += this.gravity * deltaTime;
-            super.update(deltaTime);
 
-            // Check if blocked by wall AFTER movement (position didn't change despite having speed)
-            const blockedByWall = Math.abs(this.x - prevX) < 0.1 && Math.abs(this.speedX) > 0;
-
-            // Check if grounded - if Y position didn't change much after gravity was applied
-            // The collision system sets speedY = 0 and grounded = true when landing on a platform
-            this.grounded = this.speedY === 0 || Math.abs(this.y - prevY) < 0.5;
+            // NOTE: grounded is set by Level.checkCollisionY() when enemy lands on platform
+            // Do NOT override it here - that was causing the jump bug!
 
             // === CHASER BEHAVIOR ===
             if (this.isChaser && player) {
@@ -109,7 +100,7 @@ export default class Enemy extends Entity {
 
                 // Log debug ogni tanto
                 if (Math.random() < 0.005) {
-                    console.log(`🔍 Chaser debug: grounded=${this.grounded}, canJump=${this.canJump}, jumpCD=${this.jumpCooldown.toFixed(0)}, dy=${dy.toFixed(0)}, blocked=${blockedByWall}`);
+                    console.log(`🔍 Chaser debug: grounded=${this.grounded}, canJump=${this.canJump}, jumpCD=${this.jumpCooldown.toFixed(0)}, dy=${dy.toFixed(0)}, blocked=${wasBlockedByWall}`);
                 }
 
                 // Update chase direction periodically
@@ -129,20 +120,20 @@ export default class Enemy extends Entity {
                         this.speedY = -this.jumpForce;
                         this.jumpCooldown = 60;
                         this.grounded = false;
-                        console.log(`🦘 Enemy jumped to reach player! dy=${dy.toFixed(0)}`);
+                        console.log(`🦘 Enemy jumped to reach player! dy=${dy.toFixed(0)}`, `speedY=${this.speedY}`);
                     }
                     // Jump if blocked by wall while trying to chase
-                    else if (blockedByWall && Math.abs(dx) > 30) {
+                    else if (wasBlockedByWall && Math.abs(dx) > 30) {
                         this.speedY = -this.jumpForce * 0.8;
                         this.jumpCooldown = 45;
                         this.grounded = false;
-                        console.log(`🦘 Enemy jumped over wall! dx=${dx.toFixed(0)}`);
+                        console.log(`🦘 Enemy jumped over wall! dx=${dx.toFixed(0)}`, `speedY=${this.speedY}`);
                     }
                 }
             } else if (!this.isChaser) {
                 // === PATROL BEHAVIOR (original simple AI) ===
                 // Turn around if hitting wall
-                if (this.speedX === 0 || blockedByWall) {
+                if (wasBlockedByWall) {
                     if (this.facing === -1) {
                         this.speedX = -this.speed;
                     } else {
