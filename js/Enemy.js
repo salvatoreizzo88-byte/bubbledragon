@@ -124,9 +124,12 @@ export default class Enemy extends Entity {
                     }
                     // Jump if blocked by wall while trying to chase
                     else if (wasBlockedByWall && Math.abs(dx) > 30) {
-                        this.speedY = -this.jumpForce * 0.8;
+                        // Full jump force to get over walls
+                        this.speedY = -this.jumpForce;
                         this.jumpCooldown = 45;
                         this.grounded = false;
+                        // Give a small sideways boost to help clear the wall
+                        this.speedX = dx > 0 ? this.speed * 1.2 : -this.speed * 1.2;
                         console.log(`🦘 Enemy jumped over wall! dx=${dx.toFixed(0)}`, `speedY=${this.speedY}`);
                     }
                 }

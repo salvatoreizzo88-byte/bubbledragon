@@ -85,13 +85,13 @@ const GameConfig = {
             return 1.0;                     // Always chase (61+)
         },
 
-        // Jump force for enemies (if can jump)
+        // Jump force for enemies (if can jump) - must be at least 10 to jump platforms (tile=40px)
         getJumpForce: function (levelIndex) {
             const level = levelIndex + 1;
-            if (level <= 20) return 6;     // Weak jumps
-            if (level <= 40) return 8;     // Normal jumps
-            if (level <= 60) return 9;     // Strong jumps
-            return 10;                      // Very strong jumps (like player)
+            if (level <= 20) return 10;    // Same as player
+            if (level <= 40) return 11;    // Slightly stronger
+            if (level <= 60) return 12;    // Strong jumps
+            return 13;                      // Very strong jumps
         }
     },
 
