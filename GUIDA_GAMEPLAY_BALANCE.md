@@ -46,15 +46,29 @@ Questa guida contiene tutti i parametri di gioco e suggerimenti per migliorare l
 - **Problema:** 3 vite e poi game over immediato può frustrare
 - **Soluzione:** Quando perdi tutte le vite, puoi "continuare" con 2 opzioni:
   - **Opzione 1:** Spendi **5 Dragocoin** → riprendi con 1 vita
-  - **Opzione 2:** Guarda **pubblicità** → riprendi con 1 vita (GRATIS)
+  - **Opzione 2:** Guarda **pubblicità** → riprendi con 1 vita (GRATIS) max 5 volte in un giorno
 - **Game Over:** Arriva solo se rifiuti entrambe le opzioni
 - **Come:** Modificare logica in `Game.js` + creare UI schermata continue
 - **Nota:** I checkpoint non servono perché il gioco è già a livelli sbloccabili
 
-### 3. Progressione XP Troppo Lenta
-- **Problema:** 500 XP fissi per livello, scoraggia nuovi giocatori
-- **Soluzione:** Curva progressiva (100 → 200 → 300 → ecc.)
-- **Come:** Modificare `xpPerLevel` in `GameConfig.js` o calcolo dinamico
+### 3. Progressione XP - Sistema "Hook" 🎣
+- **Strategia:** Dare sensazione di crescita rapida all'inizio, poi rallentare
+- **Effetto:** Utente si "aggancia", poi è incentivato a comprare Dragocoin per accelerare
+- **Curva XP consigliata:**
+
+| Livello | XP Richiesti | Tempo Stimato | Note |
+|---------|-------------|---------------|------|
+| 1-5 | 100 XP | ~5 min | Velocissimo, gratificazione immediata |
+| 6-10 | 200 XP | ~10 min | Ancora veloce |
+| 11-20 | 350 XP | ~15 min | Inizia a rallentare |
+| 21-40 | 500 XP | ~25 min | Rallentamento evidente |
+| 41-60 | 750 XP | ~40 min | Lento, spinge a comprare boost |
+| 61-80 | 1000 XP | ~1 ora | Molto lento |
+| 81-100 | 1500 XP | ~2 ore | Hardcore/premium only |
+
+- **Obiettivi:** Stessa logica - facili all'inizio, poi più difficili
+- **Boost XP:** Dragocoin per +500 XP → diventa molto attraente dopo livello 20
+- **Come:** Modificare calcolo XP dinamico in `GameState.js`
 
 ### 4. Primi Livelli Troppo Difficili
 - **Problema:** Stesso numero nemici dal livello 1
@@ -96,7 +110,7 @@ trappedDuration: 420, // Era 300 (5s) → Ora 420 (7s)
 1. Player ha 3 vite normali
 2. Quando perde l'ultima vita, appare schermata "CONTINUE?"
 3. **Opzione 1:** Spendi 5 Dragocoin → riprendi con 1 vita
-4. **Opzione 2:** Guarda pubblicità → riprendi con 1 vita (GRATIS)
+4. **Opzione 2:** Guarda pubblicità → riprendi con 1 vita (GRATIS) max 5 volte al giorno
 5. Se rifiuta entrambe → GAME OVER definitivo
 
 ### UI Schermata Continue
