@@ -1204,6 +1204,15 @@ window.addEventListener('load', () => {
         });
     }
 
+    // === 3D MODE BUTTON ===
+    const mode3dBtn = document.getElementById('mode3d-btn');
+    if (mode3dBtn) {
+        mode3dBtn.addEventListener('click', () => {
+            console.log('🎮 Switching to 3D mode...');
+            window.location.href = 'game3d.html';
+        });
+    }
+
     // === LEADERBOARD SCREEN ===
     const leaderboardBtn = document.getElementById('leaderboard-btn');
     const leaderboardScreen = document.getElementById('leaderboard-screen');
