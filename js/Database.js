@@ -289,6 +289,12 @@ export default class Database {
         }
 
         try {
+            // Determine username for the field
+            let nameToSave = identifier;
+            if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
+                nameToSave = this.auth.currentUser.displayName || "Unknown";
+            }
+
             // Converti stats in italiano
             const statistiche = {
                 nemiciCatturati: gameState.stats.enemiesTrapped || 0,
@@ -301,7 +307,9 @@ export default class Database {
                 livelloVelocita: gameState.stats.speedLevel || 0
             };
 
-            await targetDoc.update({
+            // Use set with merge to create document if it doesn't exist
+            await targetDoc.set({
+                nomeUtente: nameToSave,
                 monete: gameState.coins,
                 dragocoin: gameState.dragocoin || 0,
                 inventario: gameState.inventory,
@@ -314,46 +322,9 @@ export default class Database {
                 obiettiviSbloccati: gameState.unlockedAchievements || [],
                 tutorialCompletato: gameState.tutorialCompleted || false,
                 ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
-            });
+            }, { merge: true });
         } catch (error) {
             console.error("Errore salvataggio progressi:", error);
-            try {
-                // Determine username for the field
-                let nameToSave = identifier;
-                if (this.auth && this.auth.currentUser && this.auth.currentUser.uid === docId) {
-                    nameToSave = this.auth.currentUser.displayName || "Unknown";
-                }
-
-                // Converti stats in italiano
-                const statistiche = {
-                    nemiciCatturati: gameState.stats.enemiesTrapped || 0,
-                    partiteGiocate: gameState.stats.gamesPlayed || 0,
-                    livelliCompletati: gameState.stats.levelsCompleted || 0,
-                    powerupRaccolti: gameState.stats.powerupsCollected || 0,
-                    moneteGuadagnate: gameState.stats.totalCoinsEarned || 0,
-                    mortiTotali: gameState.stats.totalDeaths || 0,
-                    frutteRaccolte: gameState.stats.totalFruitCollected || 0,
-                    livelloVelocita: gameState.stats.speedLevel || 0
-                };
-
-                await targetDoc.set({
-                    nomeUtente: nameToSave,
-                    monete: gameState.coins,
-                    dragocoin: gameState.dragocoin || 0,
-                    inventario: gameState.inventory,
-                    statistiche: statistiche,
-                    livelloMax: gameState.maxLevel || 1,
-                    livelloGiocatore: gameState.playerLevel || 1,
-                    puntiXP: gameState.playerXP || 0,
-                    ultimoLogin: gameState.lastLoginDate || null,
-                    serieAccessi: gameState.loginStreak || 0,
-                    obiettiviSbloccati: gameState.unlockedAchievements || [],
-                    tutorialCompletato: gameState.tutorialCompleted || false,
-                    ultimoAccesso: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-            } catch (innerError) {
-                console.error("Tentativo salvataggio fallito:", innerError);
-            }
         }
     }
 
