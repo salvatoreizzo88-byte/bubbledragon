@@ -490,40 +490,8 @@ window.addEventListener('load', () => {
                 const oldName = userManager.getUsername();
                 const isAuthenticated = Database.auth && Database.auth.currentUser;
 
-                if (isAuthenticated) {
-                    // === AUTHENTICATED USER: Update username in existing UID document ===
-                    const uid = Database.auth.currentUser.uid;
-
-                    try {
-                        // Update displayName in Auth
-                        await Database.auth.currentUser.updateProfile({
-                            displayName: newName
-                        });
-
-                        // Update username field in Firestore document (keep same UID)
-                        await Database.updateUsername(uid, newName);
-
-                        // Update local state
-                        userManager.setUsername(newName);
-                        gameState.username = newName;
-
-                        // Force save (will save to same UID)
-                        gameState.save();
-
-                        updateDisplay();
-                        updatePlayerLevelDisplay();
-                        nameModal.style.display = 'none';
-
-                        nameStatus.style.color = 'green';
-                        nameStatus.innerText = `Nome cambiato in ${newName}!`;
-                        console.log(`✅ Username aggiornato da '${oldName}' a '${newName}' (UID: ${uid})`);
-                    } catch (error) {
-                        console.error("Errore cambio nome:", error);
-                        nameStatus.style.color = 'red';
-                        nameStatus.innerText = 'Errore durante il cambio nome';
-                    }
-                } else {
-                    // === GUEST USER: Create new document, delete old ===
+                try {
+                    // Build user data to migrate
                     const userData = {
                         coins: gameState.coins,
                         dragocoin: gameState.dragocoin || 0,
@@ -539,20 +507,29 @@ window.addEventListener('load', () => {
                         lastActive: new Date().toISOString()
                     };
 
-                    // Create new document with new name
+                    // If authenticated, also update Firebase Auth displayName
+                    if (isAuthenticated) {
+                        await Database.auth.currentUser.updateProfile({
+                            displayName: newName
+                        });
+                    }
+
+                    // Create new document with new name as ID
                     await Database.registerUser(newName, userData);
 
-                    // Delete old guest document
-                    if (oldName && oldName !== newName) {
+                    // Delete old document (docId = old username)
+                    if (oldName && oldName.toLowerCase() !== newName.toLowerCase()) {
                         await Database.deleteUser(oldName);
-                        console.log(`Vecchio utente guest '${oldName}' eliminato.`);
+                        console.log(`✅ Vecchio documento '${oldName}' eliminato.`);
                     }
 
                     // Update local state
                     userManager.setUsername(newName);
-                    userStorageKey = `bubbleBobbleSave_${newName}`;
                     gameState.username = newName;
-                    gameState.storageKey = userStorageKey;
+                    gameState.storageKey = newName;
+                    localStorage.setItem('bubbleBobbleUser', newName);
+
+                    // Force save to new document
                     gameState.save();
 
                     updateDisplay();
@@ -561,6 +538,11 @@ window.addEventListener('load', () => {
 
                     nameStatus.style.color = 'green';
                     nameStatus.innerText = `Nome cambiato in ${newName}!`;
+                    console.log(`✅ Username cambiato da '${oldName}' a '${newName}'`);
+                } catch (error) {
+                    console.error("Errore cambio nome:", error);
+                    nameStatus.style.color = 'red';
+                    nameStatus.innerText = 'Errore durante il cambio nome';
                 }
             } else {
                 nameStatus.style.color = 'red';
