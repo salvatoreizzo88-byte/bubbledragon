@@ -442,12 +442,12 @@ export default class Game3D {
 
     toggleCamera() {
         if (this.cameraMode === 'top') {
-            // Switch to third person camera
+            // Switch to third person camera with CharacterController
             this.cameraMode = 'follow';
             this.arcCamera.detachControl();
 
-            // Setup third person camera target on player
-            this.thirdPersonCamera.target = this.player.position.clone();
+            // Setup third person camera
+            this.thirdPersonCamera.setTarget(this.player.position);
             this.thirdPersonCamera.attachControl(this.canvas, true);
             this.scene.activeCamera = this.thirdPersonCamera;
             this.camera = this.thirdPersonCamera;
@@ -460,22 +460,27 @@ export default class Game3D {
                     this.player.rotationQuaternion = null;
                 }
 
+                // Enable collision on player mesh for CharacterController
+                this.player.checkCollisions = true;
+                this.player.ellipsoid = new BABYLON.Vector3(0.5, 0.75, 0.5);
+
                 this.characterController = new CharacterController(
                     this.player,
                     this.thirdPersonCamera,
                     this.scene
                 );
-                this.characterController.setWalkSpeed(8);
-                this.characterController.setRunSpeed(15);
-                this.characterController.setJumpSpeed(12);
-                this.characterController.setGravity(30);
-                this.characterController.setMode(0); // 0 = third person behind
-                this.characterController.setTurningOff(true); // Turn with camera
+                this.characterController.setWalkSpeed(10);
+                this.characterController.setRunSpeed(18);
+                this.characterController.setJumpSpeed(15);
+                this.characterController.setGravity(40);
+                this.characterController.setMode(0); // 0 = third person
+                this.characterController.setTurningOff(false); // Let player turn with movement
                 this.characterController.setCameraElasticity(true);
                 this.characterController.start();
-                console.log('🎮 CharacterController initialized!');
+                console.log('🎮 CharacterController started!');
             } else if (this.characterController) {
                 this.characterController.start();
+                console.log('🎮 CharacterController resumed!');
             }
 
             console.log('📷 Camera: Terza Persona');
@@ -486,6 +491,7 @@ export default class Game3D {
             // Stop CharacterController
             if (this.characterController) {
                 this.characterController.stop();
+                console.log('🎮 CharacterController stopped!');
             }
 
             this.thirdPersonCamera.detachControl();
@@ -499,8 +505,10 @@ export default class Game3D {
     update() {
         if (this.gameOver) return;
 
-        // Player movement
-        this.updatePlayer();
+        // Player movement (skip if CharacterController is handling it)
+        if (this.cameraMode !== 'follow' || !this.characterController) {
+            this.updatePlayer();
+        }
 
         // Enemy AI (simple patrol)
         this.updateEnemies();
