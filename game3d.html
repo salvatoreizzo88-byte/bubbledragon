@@ -78,6 +78,21 @@
             z-index: 100;
         }
 
+        /* Camera Switch Button */
+        #camera-btn {
+            position: absolute;
+            top: calc(env(safe-area-inset-top, 20px) + 100px);
+            left: 20px;
+            padding: 10px 15px;
+            background: rgba(100, 50, 200, 0.8);
+            border: 2px solid white;
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            z-index: 100;
+        }
+
         /* Lives Display */
         #lives-display {
             position: absolute;
@@ -225,6 +240,7 @@
     <div id="level-display">LEVEL 1</div>
 
     <button id="back-btn">← MENU 2D</button>
+    <button id="camera-btn">📷 CAMERA</button>
 
     <!-- Game Over Overlay -->
     <div id="game-over">
@@ -350,6 +366,15 @@
             document.getElementById('retry-btn').addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 window.location.reload();
+            });
+
+            // === CAMERA SWITCH BUTTON ===
+            document.getElementById('camera-btn').addEventListener('click', () => {
+                game.toggleCamera();
+            });
+            document.getElementById('camera-btn').addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                game.toggleCamera();
             });
 
             console.log('🎮 Bubble Bobble 3D Ready!');

@@ -55,22 +55,39 @@ export default class Game3D {
         scene.clearColor = new BABYLON.Color4(0.1, 0.05, 0.2, 1);
 
         // === CAMERA ===
-        // ArcRotate camera - can be rotated by touch/drag
-        this.camera = new BABYLON.ArcRotateCamera(
-            'camera',
+        // Camera mode: 'top' = vista dall'alto, 'follow' = terza persona
+        this.cameraMode = 'top';
+
+        // ArcRotate camera - vista dall'alto (default)
+        this.arcCamera = new BABYLON.ArcRotateCamera(
+            'arcCamera',
             Math.PI / 2,  // alpha (horizontal angle)
             Math.PI / 4,  // beta (vertical angle - 45 degrees)
             40,           // radius (distance from target)
             new BABYLON.Vector3(0, 2, 0), // target (center of arena)
             scene
         );
-        // Enable touch/mouse camera control
-        this.camera.attachControl(this.canvas, true);
-        // Limits
-        this.camera.lowerRadiusLimit = 20;
-        this.camera.upperRadiusLimit = 60;
-        this.camera.lowerBetaLimit = 0.3;   // Min vertical angle
-        this.camera.upperBetaLimit = Math.PI / 2.5; // Max vertical angle
+        this.arcCamera.attachControl(this.canvas, true);
+        this.arcCamera.lowerRadiusLimit = 20;
+        this.arcCamera.upperRadiusLimit = 60;
+        this.arcCamera.lowerBetaLimit = 0.3;
+        this.arcCamera.upperBetaLimit = Math.PI / 2.5;
+
+        // FollowCamera - terza persona dietro al player
+        this.followCamera = new BABYLON.FollowCamera(
+            'followCamera',
+            new BABYLON.Vector3(0, 10, -10), // initial position
+            scene
+        );
+        this.followCamera.radius = 8;        // distance from player
+        this.followCamera.heightOffset = 4;  // height above player
+        this.followCamera.rotationOffset = 180; // behind player (180 degrees)
+        this.followCamera.cameraAcceleration = 0.05; // smooth follow
+        this.followCamera.maxCameraSpeed = 10;
+
+        // Set default camera
+        this.camera = this.arcCamera;
+        scene.activeCamera = this.arcCamera;
 
         // === LIGHTING ===
         // Ambient light
@@ -236,6 +253,9 @@ export default class Game3D {
 
         this.player = placeholder;
 
+        // Link follow camera to player
+        this.followCamera.lockedTarget = placeholder;
+
         // Load Dragon 3D model
         BABYLON.SceneLoader.ImportMesh(
             "",
@@ -384,6 +404,24 @@ export default class Game3D {
         );
 
         console.log(`👾 ${enemyPositions.length} enemies created!`);
+    }
+
+    toggleCamera() {
+        if (this.cameraMode === 'top') {
+            // Switch to follow camera (third person)
+            this.cameraMode = 'follow';
+            this.arcCamera.detachControl();
+            this.scene.activeCamera = this.followCamera;
+            this.camera = this.followCamera;
+            console.log('📷 Camera: Terza Persona');
+        } else {
+            // Switch to arc camera (top view)
+            this.cameraMode = 'top';
+            this.scene.activeCamera = this.arcCamera;
+            this.arcCamera.attachControl(this.canvas, true);
+            this.camera = this.arcCamera;
+            console.log('📷 Camera: Vista dall\'alto');
+        }
     }
 
     update() {
