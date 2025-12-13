@@ -118,71 +118,67 @@ export default class Game3D {
 
         // Walls (4 sides) - SEGMENTED for smooth transparency
         const wallHeight = 8;
-        const wallThickness = 0.5;
         const arenaSize = 20;
-        const SEGMENTS = 50; // 50 segments per wall (200 total = performance concern)
+        const SEGMENTS = 50;
         const segmentWidth = arenaSize / SEGMENTS;
 
+        // Base wall material - will be cloned but visibility changed per segment
         const wallMat = new BABYLON.StandardMaterial('wallMat', scene);
         wallMat.diffuseTexture = new BABYLON.Texture('assets/textures/slime_wall.png', scene);
-        wallMat.diffuseTexture.uScale = 4 / SEGMENTS;
+        wallMat.diffuseTexture.uScale = 4;
         wallMat.diffuseTexture.vScale = 2;
-        wallMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.3);
-        wallMat.emissiveColor = new BABYLON.Color3(0.15, 0.08, 0.2);
-        wallMat.alpha = 0.95;
+        wallMat.specularColor = new BABYLON.Color3(0.3, 0.15, 0.4);
+        wallMat.emissiveColor = new BABYLON.Color3(0.12, 0.06, 0.18);
         wallMat.backFaceCulling = false;
 
         // Store all wall segments
         this.wallSegments = [];
 
-        // Create segmented walls
-        // Front wall (Z+) - segments along X
+        // Helper to create wall segment as thin box
+        const createSegment = (name, x, y, z, width, height, depth, angle) => {
+            const seg = BABYLON.MeshBuilder.CreateBox(name, {
+                width: width,
+                height: height,
+                depth: depth
+            }, scene);
+            seg.position = new BABYLON.Vector3(x, y, z);
+            // Clone material so each segment can have different alpha
+            const mat = wallMat.clone(name + 'Mat');
+            seg.material = mat;
+            seg.wallAngle = angle;
+            this.wallSegments.push(seg);
+        };
+
+        // Front wall (Z+) - thin segments, slightly overlapping
         for (let i = 0; i < SEGMENTS; i++) {
             const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
-            const seg = BABYLON.MeshBuilder.CreateBox(`frontSeg${i}`, {
-                width: segmentWidth + 0.1, height: wallHeight, depth: wallThickness
-            }, scene);
-            seg.position = new BABYLON.Vector3(x, wallHeight / 2, arenaSize / 2);
-            seg.material = wallMat.clone(`frontMat${i}`);
-            // Store angle from center (0,0) to this segment
-            seg.wallAngle = Math.atan2(arenaSize / 2, x);
-            this.wallSegments.push(seg);
+            const angle = Math.atan2(arenaSize / 2, x);
+            createSegment(`frontSeg${i}`, x, wallHeight / 2, arenaSize / 2,
+                segmentWidth * 1.02, wallHeight, 0.1, angle);
         }
 
-        // Back wall (Z-) - segments along X
+        // Back wall (Z-)
         for (let i = 0; i < SEGMENTS; i++) {
             const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
-            const seg = BABYLON.MeshBuilder.CreateBox(`backSeg${i}`, {
-                width: segmentWidth + 0.1, height: wallHeight, depth: wallThickness
-            }, scene);
-            seg.position = new BABYLON.Vector3(x, wallHeight / 2, -arenaSize / 2);
-            seg.material = wallMat.clone(`backMat${i}`);
-            seg.wallAngle = Math.atan2(-arenaSize / 2, x);
-            this.wallSegments.push(seg);
+            const angle = Math.atan2(-arenaSize / 2, x);
+            createSegment(`backSeg${i}`, x, wallHeight / 2, -arenaSize / 2,
+                segmentWidth * 1.02, wallHeight, 0.1, angle);
         }
 
-        // Left wall (X-) - segments along Z
+        // Left wall (X-)
         for (let i = 0; i < SEGMENTS; i++) {
             const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
-            const seg = BABYLON.MeshBuilder.CreateBox(`leftSeg${i}`, {
-                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.1
-            }, scene);
-            seg.position = new BABYLON.Vector3(-arenaSize / 2, wallHeight / 2, z);
-            seg.material = wallMat.clone(`leftMat${i}`);
-            seg.wallAngle = Math.atan2(z, -arenaSize / 2);
-            this.wallSegments.push(seg);
+            const angle = Math.atan2(z, -arenaSize / 2);
+            createSegment(`leftSeg${i}`, -arenaSize / 2, wallHeight / 2, z,
+                0.1, wallHeight, segmentWidth * 1.02, angle);
         }
 
-        // Right wall (X+) - segments along Z
+        // Right wall (X+)
         for (let i = 0; i < SEGMENTS; i++) {
             const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
-            const seg = BABYLON.MeshBuilder.CreateBox(`rightSeg${i}`, {
-                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.1
-            }, scene);
-            seg.position = new BABYLON.Vector3(arenaSize / 2, wallHeight / 2, z);
-            seg.material = wallMat.clone(`rightMat${i}`);
-            seg.wallAngle = Math.atan2(z, arenaSize / 2);
-            this.wallSegments.push(seg);
+            const angle = Math.atan2(z, arenaSize / 2);
+            createSegment(`rightSeg${i}`, arenaSize / 2, wallHeight / 2, z,
+                0.1, wallHeight, segmentWidth * 1.02, angle);
         }
 
         console.log(`🧱 Created ${this.wallSegments.length} wall segments`);
