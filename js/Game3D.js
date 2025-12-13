@@ -438,23 +438,45 @@ export default class Game3D {
             new BABYLON.Color3(0.5, 0.2, 0.9),
         ];
 
+        // Create placeholder meshes
         for (let i = 0; i < numEnemies; i++) {
-            const enemy = BABYLON.MeshBuilder.CreateSphere(`enemy_l${this.levelIndex}_${i}`, {
+            const placeholder = BABYLON.MeshBuilder.CreateSphere(`enemy_l${this.levelIndex}_${i}`, {
                 diameter: 1.2
             }, this.scene);
-            enemy.position = positions[i % positions.length].clone();
-
-            const mat = new BABYLON.StandardMaterial(`enemyMat_${i}`, this.scene);
-            mat.diffuseColor = colors[i % colors.length];
-            mat.emissiveColor = colors[i % colors.length].scale(0.3);
-            enemy.material = mat;
+            placeholder.position = positions[i % positions.length].clone();
+            placeholder.isVisible = false;
 
             this.enemies.push({
-                mesh: enemy,
+                mesh: placeholder,
                 speed: baseSpeed + Math.random() * 0.01,
-                trapped: false
+                trapped: false,
+                colorIndex: i
             });
         }
+
+        // Load Slime model and clone for each enemy
+        BABYLON.SceneLoader.ImportMesh(
+            "",
+            "assets/models/",
+            "Slime.glb",
+            this.scene,
+            (meshes) => {
+                const slimeRoot = meshes[0];
+                slimeRoot.setEnabled(false);
+
+                // Clone for each new enemy
+                this.enemies.forEach((enemy, i) => {
+                    if (!enemy.model) { // Only if no model yet
+                        const clone = slimeRoot.clone(`slime_l${this.levelIndex}_${i}`);
+                        clone.parent = enemy.mesh;
+                        clone.position = new BABYLON.Vector3(0, -0.6, 0);
+                        clone.scaling = new BABYLON.Vector3(0.8, 0.8, 0.8);
+                        clone.setEnabled(true);
+                        enemy.model = clone;
+                    }
+                });
+            }
+        );
 
         console.log(`👾 Level ${this.levelIndex + 1}: ${numEnemies} enemies spawned!`);
     }
