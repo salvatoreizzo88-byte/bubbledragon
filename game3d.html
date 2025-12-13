@@ -322,7 +322,7 @@
                     const touch = e.touches[0];
                     // Ignore if touch is on left side (joystick area) or bottom right (buttons)
                     if (touch.clientX > window.innerWidth * 0.3 && touch.clientY < window.innerHeight * 0.7) {
-                        cameraRotationTouch = { startX: touch.clientX };
+                        cameraRotationTouch = { startX: touch.clientX, startY: touch.clientY };
                     }
                 }
             });
@@ -330,9 +330,17 @@
                 if (cameraRotationTouch && game.cameraMode === 'follow') {
                     const touch = e.touches[0];
                     const deltaX = touch.clientX - cameraRotationTouch.startX;
-                    // Rotate camera based on drag
+                    const deltaY = touch.clientY - cameraRotationTouch.startY;
+
+                    // Horizontal: rotate camera around player
                     game.followCamera.rotationOffset += deltaX * 0.5;
+
+                    // Vertical: change height offset (clamp between 3 and 25)
+                    game.followCamera.heightOffset -= deltaY * 0.1;
+                    game.followCamera.heightOffset = Math.max(3, Math.min(25, game.followCamera.heightOffset));
+
                     cameraRotationTouch.startX = touch.clientX;
+                    cameraRotationTouch.startY = touch.clientY;
                 }
             });
             canvas.addEventListener('touchend', () => {

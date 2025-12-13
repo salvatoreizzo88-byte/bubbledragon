@@ -79,11 +79,11 @@ export default class Game3D {
             new BABYLON.Vector3(0, 10, -10), // initial position
             scene
         );
-        this.followCamera.radius = 12;        // distance from player
-        this.followCamera.heightOffset = 5;  // height above player
+        this.followCamera.radius = 20;        // distance from player
+        this.followCamera.heightOffset = 10;  // height above player
         this.followCamera.rotationOffset = 0; // behind player (0 = behind)
-        this.followCamera.cameraAcceleration = 0.08; // smooth follow
-        this.followCamera.maxCameraSpeed = 15;
+        this.followCamera.cameraAcceleration = 0.1; // smooth follow
+        this.followCamera.maxCameraSpeed = 20;
 
         // Camera rotation offset (controllable by touch)
         this.cameraRotationOffset = 0;
@@ -133,23 +133,25 @@ export default class Game3D {
         );
         const floorMat = new BABYLON.StandardMaterial('floorMat', scene);
 
-        // Create checkerboard texture procedurally
+        // Create checkerboard texture procedurally with HIGH CONTRAST
         const checkerSize = 512;
         const dynamicTexture = new BABYLON.DynamicTexture('checkerTex', checkerSize, scene);
         const ctx = dynamicTexture.getContext();
         const tileSize = checkerSize / 10; // 10x10 tiles
         for (let x = 0; x < 10; x++) {
             for (let y = 0; y < 10; y++) {
-                ctx.fillStyle = (x + y) % 2 === 0 ? '#3a1a5a' : '#2a0a4a';
+                // High contrast colors: dark purple vs bright purple
+                ctx.fillStyle = (x + y) % 2 === 0 ? '#5020a0' : '#200050';
                 ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
             }
         }
         dynamicTexture.update();
 
         floorMat.diffuseTexture = dynamicTexture;
-        floorMat.diffuseTexture.uScale = 10;
-        floorMat.diffuseTexture.vScale = 10;
-        floorMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.2);
+        floorMat.diffuseTexture.uScale = 20;  // More tiles visible
+        floorMat.diffuseTexture.vScale = 20;
+        floorMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.3);
+        floorMat.emissiveColor = new BABYLON.Color3(0.05, 0.02, 0.1);
         floor.material = floorMat;
 
         // Walls (4 sides) - SEGMENTED for smooth transparency
