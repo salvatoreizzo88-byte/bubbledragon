@@ -429,6 +429,12 @@ export default class Game3D {
             this.walls.right.visibility = camDirX > 0.5 ? lowOpacity : fullOpacity;
             this.walls.left.visibility = camDirX < -0.5 ? lowOpacity : fullOpacity;
         }
+
+        // DEBUG LOG every 60 frames
+        this.debugCounter = (this.debugCounter || 0) + 1;
+        if (this.debugCounter % 60 === 0) {
+            console.log(`🧱 alpha:${alpha.toFixed(2)} beta:${beta.toFixed(2)} dirX:${camDirX.toFixed(2)} dirZ:${camDirZ.toFixed(2)} low:${isLowCamera} | F:${this.walls.front.visibility.toFixed(2)} B:${this.walls.back.visibility.toFixed(2)} L:${this.walls.left.visibility.toFixed(2)} R:${this.walls.right.visibility.toFixed(2)}`);
+        }
     }
 
     checkLevelComplete() {
