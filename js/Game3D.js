@@ -398,34 +398,26 @@ export default class Game3D {
     updateWallTransparency() {
         if (!this.walls || !this.camera) return;
 
-        // Get camera angle (alpha goes from -PI to PI)
-        const alpha = this.camera.alpha % (2 * Math.PI);
-        const normalizedAlpha = alpha < 0 ? alpha + 2 * Math.PI : alpha;
-
-        // Determine which walls face the camera based on angle
-        // Alpha 0 = looking from front (positive Z)
-        // Alpha PI/2 = looking from right (positive X)
-        // Alpha PI = looking from back (negative Z)
-        // Alpha 3*PI/2 = looking from left (negative X)
+        // Get camera direction using cos/sin of alpha
+        const alpha = this.camera.alpha;
+        const camDirX = Math.sin(alpha); // Camera looks towards X
+        const camDirZ = Math.cos(alpha); // Camera looks towards Z
 
         const fullOpacity = 0.95;
-        const lowOpacity = 0.15;
+        const lowOpacity = 0.2;
 
-        // Front wall (Z+): visible when camera is behind (PI range)
-        const frontFacing = Math.abs(normalizedAlpha - Math.PI) < Math.PI / 2;
-        this.walls.front.visibility = frontFacing ? lowOpacity : fullOpacity;
+        // Front wall (at +Z): camera looking towards +Z should make it transparent
+        // camDirZ > 0 means camera is looking towards +Z
+        this.walls.front.visibility = camDirZ > 0.3 ? lowOpacity : fullOpacity;
 
-        // Back wall (Z-): visible when camera is in front (0 or 2PI range)
-        const backFacing = normalizedAlpha < Math.PI / 2 || normalizedAlpha > 3 * Math.PI / 2;
-        this.walls.back.visibility = backFacing ? lowOpacity : fullOpacity;
+        // Back wall (at -Z): camera looking towards -Z should make it transparent
+        this.walls.back.visibility = camDirZ < -0.3 ? lowOpacity : fullOpacity;
 
-        // Right wall (X+): visible when camera is left (3PI/2 range)
-        const rightFacing = normalizedAlpha > Math.PI && normalizedAlpha < 2 * Math.PI;
-        this.walls.right.visibility = rightFacing ? lowOpacity : fullOpacity;
+        // Right wall (at +X): camera looking towards +X should make it transparent
+        this.walls.right.visibility = camDirX > 0.3 ? lowOpacity : fullOpacity;
 
-        // Left wall (X-): visible when camera is right (PI/2 range)
-        const leftFacing = normalizedAlpha > 0 && normalizedAlpha < Math.PI;
-        this.walls.left.visibility = leftFacing ? lowOpacity : fullOpacity;
+        // Left wall (at -X): camera looking towards -X should make it transparent
+        this.walls.left.visibility = camDirX < -0.3 ? lowOpacity : fullOpacity;
     }
 
     checkLevelComplete() {
