@@ -503,8 +503,8 @@ export default class Game3D {
                 this.player.position.x += (rotatedX / len) * this.playerSpeed;
                 this.player.position.z += (rotatedZ / len) * this.playerSpeed;
 
-                // Rotate player to face movement direction
-                const targetAngle = Math.atan2(rotatedX, rotatedZ);
+                // Rotate player to face movement direction (+ PI to compensate model orientation)
+                const targetAngle = Math.atan2(rotatedX, rotatedZ) + Math.PI;
                 this.player.rotation.y = targetAngle;
             }
         }
