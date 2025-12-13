@@ -63,7 +63,7 @@ export default class Game3D {
             'arcCamera',
             Math.PI / 2,  // alpha (horizontal angle)
             Math.PI / 4,  // beta (vertical angle - 45 degrees)
-            40,           // radius (distance from target)
+            100,          // radius (distance from target) - larger for big arena
             new BABYLON.Vector3(0, 2, 0), // target (center of arena)
             scene
         );
@@ -73,20 +73,22 @@ export default class Game3D {
         this.arcCamera.lowerBetaLimit = 0.3;
         this.arcCamera.upperBetaLimit = Math.PI / 2.5;
 
-        // FollowCamera - terza persona dietro al player
-        this.followCamera = new BABYLON.FollowCamera(
-            'followCamera',
-            new BABYLON.Vector3(0, 10, -10), // initial position
+        // Third person ArcRotateCamera - follows player
+        this.thirdPersonCamera = new BABYLON.ArcRotateCamera(
+            'thirdPersonCamera',
+            Math.PI,      // alpha (behind player)
+            Math.PI / 3,  // beta (view from above)
+            25,           // radius (distance from player)
+            new BABYLON.Vector3(0, 1, 5), // initial target (will be player)
             scene
         );
-        this.followCamera.radius = 20;        // distance from player
-        this.followCamera.heightOffset = 10;  // height above player
-        this.followCamera.rotationOffset = 0; // behind player (0 = behind)
-        this.followCamera.cameraAcceleration = 0.1; // smooth follow
-        this.followCamera.maxCameraSpeed = 20;
+        this.thirdPersonCamera.lowerRadiusLimit = 10;
+        this.thirdPersonCamera.upperRadiusLimit = 50;
+        this.thirdPersonCamera.lowerBetaLimit = 0.2;
+        this.thirdPersonCamera.upperBetaLimit = Math.PI / 2.2;
 
-        // Camera rotation offset (controllable by touch)
-        this.cameraRotationOffset = 0;
+        // CharacterController reference
+        this.characterController = null;
 
         // Set default camera
         this.camera = this.arcCamera;
@@ -284,8 +286,9 @@ export default class Game3D {
 
         this.player = placeholder;
 
-        // Link follow camera to player
-        this.followCamera.lockedTarget = placeholder;
+        // Link third person camera to player
+        this.thirdPersonCamera.lockedTarget = placeholder;
+        this.thirdPersonCamera.target = placeholder.position;
 
         // Load Dragon 3D model
         BABYLON.SceneLoader.ImportMesh(
@@ -439,15 +442,53 @@ export default class Game3D {
 
     toggleCamera() {
         if (this.cameraMode === 'top') {
-            // Switch to follow camera (third person)
+            // Switch to third person camera
             this.cameraMode = 'follow';
             this.arcCamera.detachControl();
-            this.scene.activeCamera = this.followCamera;
-            this.camera = this.followCamera;
+
+            // Setup third person camera target on player
+            this.thirdPersonCamera.target = this.player.position.clone();
+            this.thirdPersonCamera.attachControl(this.canvas, true);
+            this.scene.activeCamera = this.thirdPersonCamera;
+            this.camera = this.thirdPersonCamera;
+
+            // Initialize CharacterController if not already done
+            if (!this.characterController && typeof CharacterController !== 'undefined') {
+                // CharacterController requires rotation in euler, not quaternion
+                if (this.player.rotationQuaternion) {
+                    this.player.rotation = this.player.rotationQuaternion.toEulerAngles();
+                    this.player.rotationQuaternion = null;
+                }
+
+                this.characterController = new CharacterController(
+                    this.player,
+                    this.thirdPersonCamera,
+                    this.scene
+                );
+                this.characterController.setWalkSpeed(8);
+                this.characterController.setRunSpeed(15);
+                this.characterController.setJumpSpeed(12);
+                this.characterController.setGravity(30);
+                this.characterController.setMode(0); // 0 = third person behind
+                this.characterController.setTurningOff(true); // Turn with camera
+                this.characterController.setCameraElasticity(true);
+                this.characterController.start();
+                console.log('🎮 CharacterController initialized!');
+            } else if (this.characterController) {
+                this.characterController.start();
+            }
+
             console.log('📷 Camera: Terza Persona');
         } else {
             // Switch to arc camera (top view)
             this.cameraMode = 'top';
+
+            // Stop CharacterController
+            if (this.characterController) {
+                this.characterController.stop();
+            }
+
+            this.thirdPersonCamera.detachControl();
             this.scene.activeCamera = this.arcCamera;
             this.arcCamera.attachControl(this.canvas, true);
             this.camera = this.arcCamera;

@@ -17,6 +17,7 @@
     "@capacitor/cli": "^7.4.4",
     "@capacitor/core": "^7.4.4",
     "@capacitor/ios": "^7.4.4",
+    "babylonjs-charactercontroller": "^0.4.4",
     "easystarjs": "^0.4.4"
   }
 }
