@@ -405,11 +405,13 @@ export default class Game3D {
         const camDirZ = Math.cos(alpha); // Camera looks towards Z
 
         const fullOpacity = 0.95;
-        const lowOpacity = 0.2;
+        const lowOpacity = 0.15;
 
-        // When camera is low (beta > 1.2 rad ~70°), walls block view more
-        // Make threshold lower so walls become transparent earlier
-        const threshold = beta > 1.2 ? 0.0 : 0.3;
+        // When camera is low (beta > 1.0), make walls more transparent
+        const isLowCamera = beta > 1.0;
+
+        // Use very low threshold when camera is low, so walls become transparent in corners too
+        const threshold = isLowCamera ? -0.2 : 0.3;
 
         // Front wall (at +Z): camera looking towards +Z should make it transparent
         this.walls.front.visibility = camDirZ > threshold ? lowOpacity : fullOpacity;
