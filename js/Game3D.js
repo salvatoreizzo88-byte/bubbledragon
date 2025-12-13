@@ -81,7 +81,7 @@ export default class Game3D {
         );
         this.followCamera.radius = 8;        // distance from player
         this.followCamera.heightOffset = 4;  // height above player
-        this.followCamera.rotationOffset = 180; // behind player (180 degrees)
+        this.followCamera.rotationOffset = 0; // behind player (0 = behind)
         this.followCamera.cameraAcceleration = 0.05; // smooth follow
         this.followCamera.maxCameraSpeed = 10;
 
@@ -604,8 +604,16 @@ export default class Game3D {
 
         // Transform input relative to camera direction
         if (Math.abs(inputX) > 0.01 || Math.abs(inputZ) > 0.01) {
-            // Get camera angle (alpha is horizontal rotation)
-            const cameraAngle = this.camera.alpha - Math.PI / 2;
+            let cameraAngle;
+
+            if (this.cameraMode === 'follow') {
+                // In follow mode, movement is relative to player facing direction
+                // Use player's current rotation
+                cameraAngle = this.player.rotation.y;
+            } else {
+                // In top view, movement is relative to camera angle
+                cameraAngle = this.arcCamera.alpha - Math.PI / 2;
+            }
 
             // Rotate input vector by camera angle
             const cos = Math.cos(cameraAngle);
