@@ -400,24 +400,28 @@ export default class Game3D {
 
         // Get camera direction using cos/sin of alpha
         const alpha = this.camera.alpha;
+        const beta = this.camera.beta;
         const camDirX = Math.sin(alpha); // Camera looks towards X
         const camDirZ = Math.cos(alpha); // Camera looks towards Z
 
         const fullOpacity = 0.95;
         const lowOpacity = 0.2;
 
+        // When camera is low (beta > 1.2 rad ~70°), walls block view more
+        // Make threshold lower so walls become transparent earlier
+        const threshold = beta > 1.2 ? 0.0 : 0.3;
+
         // Front wall (at +Z): camera looking towards +Z should make it transparent
-        // camDirZ > 0 means camera is looking towards +Z
-        this.walls.front.visibility = camDirZ > 0.3 ? lowOpacity : fullOpacity;
+        this.walls.front.visibility = camDirZ > threshold ? lowOpacity : fullOpacity;
 
         // Back wall (at -Z): camera looking towards -Z should make it transparent
-        this.walls.back.visibility = camDirZ < -0.3 ? lowOpacity : fullOpacity;
+        this.walls.back.visibility = camDirZ < -threshold ? lowOpacity : fullOpacity;
 
         // Right wall (at +X): camera looking towards +X should make it transparent
-        this.walls.right.visibility = camDirX > 0.3 ? lowOpacity : fullOpacity;
+        this.walls.right.visibility = camDirX > threshold ? lowOpacity : fullOpacity;
 
         // Left wall (at -X): camera looking towards -X should make it transparent
-        this.walls.left.visibility = camDirX < -0.3 ? lowOpacity : fullOpacity;
+        this.walls.left.visibility = camDirX < -threshold ? lowOpacity : fullOpacity;
     }
 
     checkLevelComplete() {
