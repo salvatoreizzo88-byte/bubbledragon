@@ -68,8 +68,8 @@ export default class Game3D {
             scene
         );
         this.arcCamera.attachControl(this.canvas, true);
-        this.arcCamera.lowerRadiusLimit = 20;
-        this.arcCamera.upperRadiusLimit = 60;
+        this.arcCamera.lowerRadiusLimit = 50;
+        this.arcCamera.upperRadiusLimit = 300;
         this.arcCamera.lowerBetaLimit = 0.3;
         this.arcCamera.upperBetaLimit = Math.PI / 2.5;
 
@@ -125,7 +125,7 @@ export default class Game3D {
         // Floor
         const floor = BABYLON.MeshBuilder.CreateGround(
             'floor',
-            { width: 20, height: 20 },
+            { width: 200, height: 200 },
             scene
         );
         const floorMat = new BABYLON.StandardMaterial('floorMat', scene);
@@ -135,7 +135,7 @@ export default class Game3D {
 
         // Walls (4 sides) - SEGMENTED for smooth transparency
         const wallHeight = 8;
-        const arenaSize = 20;
+        const arenaSize = 200;
         const SEGMENTS = 50;
         const segmentWidth = arenaSize / SEGMENTS;
 
@@ -678,7 +678,7 @@ export default class Game3D {
         }
 
         // Keep player in bounds (horizontal)
-        const bounds = 9;
+        const bounds = 90;
         this.player.position.x = Math.max(-bounds, Math.min(bounds, this.player.position.x));
         this.player.position.z = Math.max(-bounds, Math.min(bounds, this.player.position.z));
         // Camera is now fixed - no target update needed
@@ -758,8 +758,8 @@ export default class Game3D {
             }
 
             // Stay in bounds (inside walls)
-            enemy.mesh.position.x = Math.max(-8, Math.min(8, enemy.mesh.position.x));
-            enemy.mesh.position.z = Math.max(-8, Math.min(8, enemy.mesh.position.z));
+            enemy.mesh.position.x = Math.max(-80, Math.min(80, enemy.mesh.position.x));
+            enemy.mesh.position.z = Math.max(-80, Math.min(80, enemy.mesh.position.z));
         });
     }
 
