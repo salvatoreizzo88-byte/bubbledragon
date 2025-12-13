@@ -413,15 +413,15 @@ export default class Game3D {
         const isLowCamera = beta > 0.8;
 
         if (isLowCamera) {
-            // When low, make any wall the camera is looking towards transparent
-            // Front (+Z): transparent if camDirZ > -0.5 (looking towards or sideways)
-            this.walls.front.visibility = camDirZ > -0.5 ? lowOpacity : fullOpacity;
-            // Back (-Z): transparent if camDirZ < 0.5
-            this.walls.back.visibility = camDirZ < 0.5 ? lowOpacity : fullOpacity;
-            // Right (+X): transparent if camDirX > -0.5
-            this.walls.right.visibility = camDirX > -0.5 ? lowOpacity : fullOpacity;
-            // Left (-X): transparent if camDirX < 0.5
-            this.walls.left.visibility = camDirX < 0.5 ? lowOpacity : fullOpacity;
+            // When low, be very aggressive - only keep wall that's DIRECTLY behind camera opaque
+            // Front (+Z): transparent unless camera is looking strongly at back (dirZ < -0.7)
+            this.walls.front.visibility = camDirZ > -0.7 ? lowOpacity : fullOpacity;
+            // Back (-Z): transparent unless camera is looking strongly at front (dirZ > 0.7)
+            this.walls.back.visibility = camDirZ < 0.7 ? lowOpacity : fullOpacity;
+            // Right (+X): transparent unless camera is looking strongly at left (dirX < -0.7)
+            this.walls.right.visibility = camDirX > -0.7 ? lowOpacity : fullOpacity;
+            // Left (-X): transparent unless camera is looking strongly at right (dirX > 0.7)
+            this.walls.left.visibility = camDirX < 0.7 ? lowOpacity : fullOpacity;
         } else {
             // When camera is high, only make wall directly in front transparent
             this.walls.front.visibility = camDirZ > 0.5 ? lowOpacity : fullOpacity;
