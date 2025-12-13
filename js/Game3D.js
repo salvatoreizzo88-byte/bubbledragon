@@ -844,7 +844,7 @@ export default class Game3D {
     // Called when shooting bubble
     shootBubble() {
         const bubble = BABYLON.MeshBuilder.CreateSphere('bubble', {
-            diameter: 5.0  // Larger for big arena
+            diameter: 2.0  // Reasonable size
         }, this.scene);
 
         bubble.position = this.player.position.clone();
