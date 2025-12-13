@@ -221,8 +221,11 @@ export default class Game3D {
             "assets/models/",
             "Dragon.glb",
             scene,
-            (meshes) => {
+            (meshes, particleSystems, skeletons, animationGroups) => {
                 console.log('🐉 Dragon model loaded!');
+
+                // Stop all animations to prevent spinning
+                animationGroups.forEach(ag => ag.stop());
 
                 // Get root mesh
                 const dragonRoot = meshes[0];
@@ -636,12 +639,14 @@ export default class Game3D {
         // Decrease damage cooldown
         if (this.damageCooldown > 0) {
             this.damageCooldown--;
-            // Flash player red/green while invincible
-            if (this.damageCooldown % 10 < 5) {
-                this.player.material.emissiveColor = new BABYLON.Color3(0.5, 0, 0);
-            } else {
-                this.player.material.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.1);
+            // Player invincibility flash - scale the player model instead of material
+            if (this.playerModel) {
+                const flash = this.damageCooldown % 10 < 5 ? 0.4 : 0.5;
+                this.playerModel.scaling = new BABYLON.Vector3(flash, flash, flash);
             }
+        } else if (this.playerModel) {
+            // Reset scale when not invincible
+            this.playerModel.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
         }
 
         // Player-Enemy collision
