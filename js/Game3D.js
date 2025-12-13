@@ -116,57 +116,75 @@ export default class Game3D {
         floorMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.2);
         floor.material = floorMat;
 
-        // Walls (4 sides)
+        // Walls (4 sides) - SEGMENTED for smooth transparency
         const wallHeight = 8;
         const wallThickness = 0.5;
         const arenaSize = 20;
+        const SEGMENTS = 50; // 50 segments per wall (200 total = performance concern)
+        const segmentWidth = arenaSize / SEGMENTS;
 
         const wallMat = new BABYLON.StandardMaterial('wallMat', scene);
         wallMat.diffuseTexture = new BABYLON.Texture('assets/textures/slime_wall.png', scene);
-        wallMat.diffuseTexture.uScale = 4;
+        wallMat.diffuseTexture.uScale = 4 / SEGMENTS;
         wallMat.diffuseTexture.vScale = 2;
         wallMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.6);
         wallMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15);
         wallMat.alpha = 0.9;
 
-        // Back wall
-        const backWall = BABYLON.MeshBuilder.CreateBox('backWall', {
-            width: arenaSize,
-            height: wallHeight,
-            depth: wallThickness
-        }, scene);
-        backWall.position = new BABYLON.Vector3(0, wallHeight / 2, -arenaSize / 2);
-        backWall.material = wallMat.clone('backWallMat');
+        // Store all wall segments
+        this.wallSegments = [];
 
-        // Front wall
-        const frontWall = BABYLON.MeshBuilder.CreateBox('frontWall', {
-            width: arenaSize,
-            height: wallHeight,
-            depth: wallThickness
-        }, scene);
-        frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, arenaSize / 2);
-        frontWall.material = wallMat.clone('frontWallMat');
+        // Create segmented walls
+        // Front wall (Z+) - segments along X
+        for (let i = 0; i < SEGMENTS; i++) {
+            const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
+            const seg = BABYLON.MeshBuilder.CreateBox(`frontSeg${i}`, {
+                width: segmentWidth + 0.01, height: wallHeight, depth: wallThickness
+            }, scene);
+            seg.position = new BABYLON.Vector3(x, wallHeight / 2, arenaSize / 2);
+            seg.material = wallMat.clone(`frontMat${i}`);
+            // Store angle from center (0,0) to this segment
+            seg.wallAngle = Math.atan2(arenaSize / 2, x);
+            this.wallSegments.push(seg);
+        }
 
-        // Left wall
-        const leftWall = BABYLON.MeshBuilder.CreateBox('leftWall', {
-            width: wallThickness,
-            height: wallHeight,
-            depth: arenaSize
-        }, scene);
-        leftWall.position = new BABYLON.Vector3(-arenaSize / 2, wallHeight / 2, 0);
-        leftWall.material = wallMat.clone('leftWallMat');
+        // Back wall (Z-) - segments along X
+        for (let i = 0; i < SEGMENTS; i++) {
+            const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
+            const seg = BABYLON.MeshBuilder.CreateBox(`backSeg${i}`, {
+                width: segmentWidth + 0.01, height: wallHeight, depth: wallThickness
+            }, scene);
+            seg.position = new BABYLON.Vector3(x, wallHeight / 2, -arenaSize / 2);
+            seg.material = wallMat.clone(`backMat${i}`);
+            seg.wallAngle = Math.atan2(-arenaSize / 2, x);
+            this.wallSegments.push(seg);
+        }
 
-        // Right wall
-        const rightWall = BABYLON.MeshBuilder.CreateBox('rightWall', {
-            width: wallThickness,
-            height: wallHeight,
-            depth: arenaSize
-        }, scene);
-        rightWall.position = new BABYLON.Vector3(arenaSize / 2, wallHeight / 2, 0);
-        rightWall.material = wallMat.clone('rightWallMat');
+        // Left wall (X-) - segments along Z
+        for (let i = 0; i < SEGMENTS; i++) {
+            const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
+            const seg = BABYLON.MeshBuilder.CreateBox(`leftSeg${i}`, {
+                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.01
+            }, scene);
+            seg.position = new BABYLON.Vector3(-arenaSize / 2, wallHeight / 2, z);
+            seg.material = wallMat.clone(`leftMat${i}`);
+            seg.wallAngle = Math.atan2(z, -arenaSize / 2);
+            this.wallSegments.push(seg);
+        }
 
-        // Store walls for dynamic transparency
-        this.walls = { front: frontWall, back: backWall, left: leftWall, right: rightWall };
+        // Right wall (X+) - segments along Z
+        for (let i = 0; i < SEGMENTS; i++) {
+            const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
+            const seg = BABYLON.MeshBuilder.CreateBox(`rightSeg${i}`, {
+                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.01
+            }, scene);
+            seg.position = new BABYLON.Vector3(arenaSize / 2, wallHeight / 2, z);
+            seg.material = wallMat.clone(`rightMat${i}`);
+            seg.wallAngle = Math.atan2(z, arenaSize / 2);
+            this.wallSegments.push(seg);
+        }
+
+        console.log(`🧱 Created ${this.wallSegments.length} wall segments`);
 
         // === PLATFORMS ===
         this.createPlatforms(scene);
@@ -397,44 +415,36 @@ export default class Game3D {
     }
 
     updateWallTransparency() {
-        if (!this.walls || !this.camera) return;
+        if (!this.wallSegments || !this.camera) return;
 
-        const alpha = this.camera.alpha;
-        const beta = this.camera.beta;
+        // Camera angle (horizontal rotation)
+        const cameraAngle = this.camera.alpha;
 
-        // Camera direction vector
-        const camDirX = Math.sin(alpha);
-        const camDirZ = Math.cos(alpha);
+        const fullOpacity = 0.95;
+        const lowOpacity = 0.1;
 
-        const fullOpacity = 0.9;
-        const lowOpacity = 0.15;
+        // For each wall segment, calculate transparency based on angle difference
+        this.wallSegments.forEach(seg => {
+            // Get angle from center to this segment
+            const segAngle = seg.wallAngle;
 
-        // When camera is low (beta > 0.8), be more aggressive with transparency
-        const isLowCamera = beta > 0.8;
+            // Calculate angular difference (how much camera is facing this segment)
+            let angleDiff = Math.abs(cameraAngle - segAngle);
 
-        if (isLowCamera) {
-            // When low, be very aggressive - only keep wall that's DIRECTLY behind camera opaque
-            // Front (+Z): transparent unless camera is looking strongly at back (dirZ < -0.7)
-            this.walls.front.visibility = camDirZ > -0.7 ? lowOpacity : fullOpacity;
-            // Back (-Z): transparent unless camera is looking strongly at front (dirZ > 0.7)
-            this.walls.back.visibility = camDirZ < 0.7 ? lowOpacity : fullOpacity;
-            // Right (+X): transparent unless camera is looking strongly at left (dirX < -0.7)
-            this.walls.right.visibility = camDirX > -0.7 ? lowOpacity : fullOpacity;
-            // Left (-X): transparent unless camera is looking strongly at right (dirX > 0.7)
-            this.walls.left.visibility = camDirX < 0.7 ? lowOpacity : fullOpacity;
-        } else {
-            // When camera is high, only make wall directly in front transparent
-            this.walls.front.visibility = camDirZ > 0.5 ? lowOpacity : fullOpacity;
-            this.walls.back.visibility = camDirZ < -0.5 ? lowOpacity : fullOpacity;
-            this.walls.right.visibility = camDirX > 0.5 ? lowOpacity : fullOpacity;
-            this.walls.left.visibility = camDirX < -0.5 ? lowOpacity : fullOpacity;
-        }
+            // Normalize to 0-PI range
+            while (angleDiff > Math.PI) angleDiff = Math.abs(angleDiff - 2 * Math.PI);
 
-        // DEBUG LOG every 30 frames (0.5 sec)
-        this.debugCounter = (this.debugCounter || 0) + 1;
-        if (this.debugCounter % 30 === 0) {
-            console.log(`🧱 alpha:${alpha.toFixed(2)} beta:${beta.toFixed(2)} dirX:${camDirX.toFixed(2)} dirZ:${camDirZ.toFixed(2)} low:${isLowCamera} | F:${this.walls.front.visibility.toFixed(2)} B:${this.walls.back.visibility.toFixed(2)} L:${this.walls.left.visibility.toFixed(2)} R:${this.walls.right.visibility.toFixed(2)}`);
-        }
+            // If camera is facing towards this segment (angleDiff < PI/2), make transparent
+            // Smooth transition: closer to facing = more transparent
+            if (angleDiff < Math.PI / 2) {
+                // 0 = facing directly, make very transparent
+                // PI/2 = perpendicular, start becoming opaque
+                const t = angleDiff / (Math.PI / 2); // 0 to 1
+                seg.visibility = lowOpacity + (fullOpacity - lowOpacity) * t;
+            } else {
+                seg.visibility = fullOpacity;
+            }
+        });
     }
 
     checkLevelComplete() {
