@@ -219,7 +219,7 @@ export default class Game3D {
         BABYLON.SceneLoader.ImportMesh(
             "",
             "assets/models/",
-            "cute_dragon.glb",
+            "Dragon.glb",
             scene,
             (meshes, particleSystems, skeletons, animationGroups) => {
                 console.log('🐉 Dragon model loaded!');
@@ -231,7 +231,7 @@ export default class Game3D {
                 const dragonRoot = meshes[0];
                 dragonRoot.parent = placeholder;
                 dragonRoot.position = new BABYLON.Vector3(0, -0.75, 0);
-                dragonRoot.scaling = new BABYLON.Vector3(50, 50, 50);
+                dragonRoot.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
                 dragonRoot.rotation.y = Math.PI; // Rotate 180 degrees to face forward
 
                 // Store reference for rotation
