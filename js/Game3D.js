@@ -604,33 +604,37 @@ export default class Game3D {
 
         // Transform input relative to camera direction
         if (Math.abs(inputX) > 0.01 || Math.abs(inputZ) > 0.01) {
-            let cameraAngle;
+            let moveX, moveZ;
 
             if (this.cameraMode === 'follow') {
-                // In follow mode, movement is relative to player facing direction
-                // Use player's current rotation
-                cameraAngle = this.player.rotation.y;
+                // In follow mode, movement is ABSOLUTE
+                // W = -Z, S = +Z, A = -X, D = +X
+                moveX = inputX;
+                moveZ = inputZ;
             } else {
                 // In top view, movement is relative to camera angle
-                cameraAngle = this.arcCamera.alpha - Math.PI / 2;
+                const cameraAngle = this.arcCamera.alpha - Math.PI / 2;
+                const cos = Math.cos(cameraAngle);
+                const sin = Math.sin(cameraAngle);
+                moveX = inputX * cos - inputZ * sin;
+                moveZ = inputX * sin + inputZ * cos;
             }
 
-            // Rotate input vector by camera angle
-            const cos = Math.cos(cameraAngle);
-            const sin = Math.sin(cameraAngle);
-
-            const rotatedX = inputX * cos - inputZ * sin;
-            const rotatedZ = inputX * sin + inputZ * cos;
-
             // Normalize and apply speed
-            const len = Math.sqrt(rotatedX * rotatedX + rotatedZ * rotatedZ);
+            const len = Math.sqrt(moveX * moveX + moveZ * moveZ);
             if (len > 0) {
-                this.player.position.x += (rotatedX / len) * this.playerSpeed;
-                this.player.position.z += (rotatedZ / len) * this.playerSpeed;
+                this.player.position.x += (moveX / len) * this.playerSpeed;
+                this.player.position.z += (moveZ / len) * this.playerSpeed;
 
                 // Rotate player to face movement direction (+ PI to compensate model orientation)
-                const targetAngle = Math.atan2(rotatedX, rotatedZ) + Math.PI;
+                const targetAngle = Math.atan2(moveX, moveZ) + Math.PI;
                 this.player.rotation.y = targetAngle;
+            }
+
+            // DEBUG log every 30 frames
+            this.moveDebug = (this.moveDebug || 0) + 1;
+            if (this.moveDebug % 30 === 0) {
+                console.log(`🎮 mode:${this.cameraMode} inX:${inputX.toFixed(2)} inZ:${inputZ.toFixed(2)} mvX:${moveX.toFixed(2)} mvZ:${moveZ.toFixed(2)} posX:${this.player.position.x.toFixed(1)} posZ:${this.player.position.z.toFixed(1)}`);
             }
         }
 
