@@ -20,6 +20,7 @@ export default class Game3D {
         this.score = 0;
         this.lives = 3;           // Player lives
         this.damageCooldown = 0;  // Invincibility after hit
+        this.godMode = true;      // TEST MODE: player immortale
         this.levelIndex = 0;
 
         // Entity arrays
@@ -398,32 +399,36 @@ export default class Game3D {
     updateWallTransparency() {
         if (!this.walls || !this.camera) return;
 
-        // Get camera direction using cos/sin of alpha
         const alpha = this.camera.alpha;
         const beta = this.camera.beta;
-        const camDirX = Math.sin(alpha); // Camera looks towards X
-        const camDirZ = Math.cos(alpha); // Camera looks towards Z
 
-        const fullOpacity = 0.95;
+        // Camera direction vector
+        const camDirX = Math.sin(alpha);
+        const camDirZ = Math.cos(alpha);
+
+        const fullOpacity = 0.9;
         const lowOpacity = 0.15;
 
-        // When camera is low (beta > 1.0), make walls more transparent
-        const isLowCamera = beta > 1.0;
+        // When camera is low (beta > 0.8), be more aggressive with transparency
+        const isLowCamera = beta > 0.8;
 
-        // Use very low threshold when camera is low, so walls become transparent in corners too
-        const threshold = isLowCamera ? -0.2 : 0.3;
-
-        // Front wall (at +Z): camera looking towards +Z should make it transparent
-        this.walls.front.visibility = camDirZ > threshold ? lowOpacity : fullOpacity;
-
-        // Back wall (at -Z): camera looking towards -Z should make it transparent
-        this.walls.back.visibility = camDirZ < -threshold ? lowOpacity : fullOpacity;
-
-        // Right wall (at +X): camera looking towards +X should make it transparent
-        this.walls.right.visibility = camDirX > threshold ? lowOpacity : fullOpacity;
-
-        // Left wall (at -X): camera looking towards -X should make it transparent
-        this.walls.left.visibility = camDirX < -threshold ? lowOpacity : fullOpacity;
+        if (isLowCamera) {
+            // When low, make any wall the camera is looking towards transparent
+            // Front (+Z): transparent if camDirZ > -0.5 (looking towards or sideways)
+            this.walls.front.visibility = camDirZ > -0.5 ? lowOpacity : fullOpacity;
+            // Back (-Z): transparent if camDirZ < 0.5
+            this.walls.back.visibility = camDirZ < 0.5 ? lowOpacity : fullOpacity;
+            // Right (+X): transparent if camDirX > -0.5
+            this.walls.right.visibility = camDirX > -0.5 ? lowOpacity : fullOpacity;
+            // Left (-X): transparent if camDirX < 0.5
+            this.walls.left.visibility = camDirX < 0.5 ? lowOpacity : fullOpacity;
+        } else {
+            // When camera is high, only make wall directly in front transparent
+            this.walls.front.visibility = camDirZ > 0.5 ? lowOpacity : fullOpacity;
+            this.walls.back.visibility = camDirZ < -0.5 ? lowOpacity : fullOpacity;
+            this.walls.right.visibility = camDirX > 0.5 ? lowOpacity : fullOpacity;
+            this.walls.left.visibility = camDirX < -0.5 ? lowOpacity : fullOpacity;
+        }
     }
 
     checkLevelComplete() {
@@ -720,8 +725,8 @@ export default class Game3D {
                 enemy.mesh.position
             );
 
-            if (dist < 1.5 && this.damageCooldown <= 0) {
-                // Take damage!
+            if (dist < 1.5 && this.damageCooldown <= 0 && !this.godMode) {
+                // Take damage! (skip if godMode)
                 this.lives--;
                 this.damageCooldown = 90; // 1.5 seconds invincibility
                 console.log(`💔 Player hit! Lives: ${this.lives}`);
