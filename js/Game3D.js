@@ -867,7 +867,7 @@ export default class Game3D {
         }, this.scene);
 
         bubble.position = this.player.position.clone();
-        bubble.position.y += 2; // Higher so visible from above
+        bubble.position.y += 0.5; // Mouth height
 
         const bubbleMat = new BABYLON.StandardMaterial('bubbleMat', this.scene);
         bubbleMat.diffuseColor = new BABYLON.Color3(0.3, 0.9, 1);
