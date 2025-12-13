@@ -314,6 +314,31 @@
                 game.joystickY = 0;
             });
 
+            // === CAMERA ROTATION (touch on canvas in follow mode) ===
+            let cameraRotationTouch = null;
+            canvas.addEventListener('touchstart', (e) => {
+                // Only rotate in follow mode and if touch not on joystick/buttons
+                if (game.cameraMode === 'follow' && e.touches.length === 1) {
+                    const touch = e.touches[0];
+                    // Ignore if touch is on left side (joystick area) or bottom right (buttons)
+                    if (touch.clientX > window.innerWidth * 0.3 && touch.clientY < window.innerHeight * 0.7) {
+                        cameraRotationTouch = { startX: touch.clientX };
+                    }
+                }
+            });
+            canvas.addEventListener('touchmove', (e) => {
+                if (cameraRotationTouch && game.cameraMode === 'follow') {
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - cameraRotationTouch.startX;
+                    // Rotate camera based on drag
+                    game.followCamera.rotationOffset += deltaX * 0.5;
+                    cameraRotationTouch.startX = touch.clientX;
+                }
+            });
+            canvas.addEventListener('touchend', () => {
+                cameraRotationTouch = null;
+            });
+
             // === BUTTONS ===
             document.getElementById('shoot-btn').addEventListener('touchstart', (e) => {
                 e.preventDefault();

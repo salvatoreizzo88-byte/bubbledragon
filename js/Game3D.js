@@ -79,11 +79,14 @@ export default class Game3D {
             new BABYLON.Vector3(0, 10, -10), // initial position
             scene
         );
-        this.followCamera.radius = 8;        // distance from player
-        this.followCamera.heightOffset = 4;  // height above player
+        this.followCamera.radius = 12;        // distance from player
+        this.followCamera.heightOffset = 5;  // height above player
         this.followCamera.rotationOffset = 0; // behind player (0 = behind)
-        this.followCamera.cameraAcceleration = 0.05; // smooth follow
-        this.followCamera.maxCameraSpeed = 10;
+        this.followCamera.cameraAcceleration = 0.08; // smooth follow
+        this.followCamera.maxCameraSpeed = 15;
+
+        // Camera rotation offset (controllable by touch)
+        this.cameraRotationOffset = 0;
 
         // Set default camera
         this.camera = this.arcCamera;
@@ -122,14 +125,30 @@ export default class Game3D {
     }
 
     createArena(scene) {
-        // Floor
+        // Floor with checkerboard pattern for orientation
         const floor = BABYLON.MeshBuilder.CreateGround(
             'floor',
-            { width: 200, height: 200 },
+            { width: 200, height: 200, subdivisions: 20 },
             scene
         );
         const floorMat = new BABYLON.StandardMaterial('floorMat', scene);
-        floorMat.diffuseColor = new BABYLON.Color3(0.2, 0.1, 0.4);
+
+        // Create checkerboard texture procedurally
+        const checkerSize = 512;
+        const dynamicTexture = new BABYLON.DynamicTexture('checkerTex', checkerSize, scene);
+        const ctx = dynamicTexture.getContext();
+        const tileSize = checkerSize / 10; // 10x10 tiles
+        for (let x = 0; x < 10; x++) {
+            for (let y = 0; y < 10; y++) {
+                ctx.fillStyle = (x + y) % 2 === 0 ? '#3a1a5a' : '#2a0a4a';
+                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+            }
+        }
+        dynamicTexture.update();
+
+        floorMat.diffuseTexture = dynamicTexture;
+        floorMat.diffuseTexture.uScale = 10;
+        floorMat.diffuseTexture.vScale = 10;
         floorMat.specularColor = new BABYLON.Color3(0.1, 0.1, 0.2);
         floor.material = floorMat;
 
