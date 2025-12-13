@@ -232,6 +232,7 @@ export default class Game3D {
                 dragonRoot.parent = placeholder;
                 dragonRoot.position = new BABYLON.Vector3(0, -0.75, 0);
                 dragonRoot.scaling = new BABYLON.Vector3(0.5, 0.5, 0.5);
+                dragonRoot.rotation.y = Math.PI; // Rotate 180 degrees to face forward
 
                 // Store reference for rotation
                 this.playerModel = dragonRoot;
