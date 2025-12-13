@@ -121,9 +121,12 @@ export default class Game3D {
         const arenaSize = 20;
 
         const wallMat = new BABYLON.StandardMaterial('wallMat', scene);
-        wallMat.diffuseColor = new BABYLON.Color3(0.4, 0.2, 0.6);
-        wallMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.3);
-        wallMat.alpha = 0.8;
+        wallMat.diffuseTexture = new BABYLON.Texture('assets/textures/slime_wall.png', scene);
+        wallMat.diffuseTexture.uScale = 4;
+        wallMat.diffuseTexture.vScale = 2;
+        wallMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.6);
+        wallMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15);
+        wallMat.alpha = 0.9;
 
         // Back wall
         const backWall = BABYLON.MeshBuilder.CreateBox('backWall', {
