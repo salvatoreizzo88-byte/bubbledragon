@@ -135,17 +135,16 @@ export default class Game3D {
             depth: wallThickness
         }, scene);
         backWall.position = new BABYLON.Vector3(0, wallHeight / 2, -arenaSize / 2);
-        backWall.material = wallMat;
+        backWall.material = wallMat.clone('backWallMat');
 
-        // Front wall (transparent for camera)
+        // Front wall
         const frontWall = BABYLON.MeshBuilder.CreateBox('frontWall', {
             width: arenaSize,
             height: wallHeight,
             depth: wallThickness
         }, scene);
         frontWall.position = new BABYLON.Vector3(0, wallHeight / 2, arenaSize / 2);
-        frontWall.material = wallMat;
-        frontWall.visibility = 0.3;
+        frontWall.material = wallMat.clone('frontWallMat');
 
         // Left wall
         const leftWall = BABYLON.MeshBuilder.CreateBox('leftWall', {
@@ -154,7 +153,7 @@ export default class Game3D {
             depth: arenaSize
         }, scene);
         leftWall.position = new BABYLON.Vector3(-arenaSize / 2, wallHeight / 2, 0);
-        leftWall.material = wallMat;
+        leftWall.material = wallMat.clone('leftWallMat');
 
         // Right wall
         const rightWall = BABYLON.MeshBuilder.CreateBox('rightWall', {
@@ -163,7 +162,10 @@ export default class Game3D {
             depth: arenaSize
         }, scene);
         rightWall.position = new BABYLON.Vector3(arenaSize / 2, wallHeight / 2, 0);
-        rightWall.material = wallMat;
+        rightWall.material = wallMat.clone('rightWallMat');
+
+        // Store walls for dynamic transparency
+        this.walls = { front: frontWall, back: backWall, left: leftWall, right: rightWall };
 
         // === PLATFORMS ===
         this.createPlatforms(scene);
@@ -386,8 +388,44 @@ export default class Game3D {
         // Check collisions
         this.checkCollisions();
 
+        // Update wall transparency based on camera angle
+        this.updateWallTransparency();
+
         // Check if level complete
         this.checkLevelComplete();
+    }
+
+    updateWallTransparency() {
+        if (!this.walls || !this.camera) return;
+
+        // Get camera angle (alpha goes from -PI to PI)
+        const alpha = this.camera.alpha % (2 * Math.PI);
+        const normalizedAlpha = alpha < 0 ? alpha + 2 * Math.PI : alpha;
+
+        // Determine which walls face the camera based on angle
+        // Alpha 0 = looking from front (positive Z)
+        // Alpha PI/2 = looking from right (positive X)
+        // Alpha PI = looking from back (negative Z)
+        // Alpha 3*PI/2 = looking from left (negative X)
+
+        const fullOpacity = 0.95;
+        const lowOpacity = 0.15;
+
+        // Front wall (Z+): visible when camera is behind (PI range)
+        const frontFacing = Math.abs(normalizedAlpha - Math.PI) < Math.PI / 2;
+        this.walls.front.visibility = frontFacing ? lowOpacity : fullOpacity;
+
+        // Back wall (Z-): visible when camera is in front (0 or 2PI range)
+        const backFacing = normalizedAlpha < Math.PI / 2 || normalizedAlpha > 3 * Math.PI / 2;
+        this.walls.back.visibility = backFacing ? lowOpacity : fullOpacity;
+
+        // Right wall (X+): visible when camera is left (3PI/2 range)
+        const rightFacing = normalizedAlpha > Math.PI && normalizedAlpha < 2 * Math.PI;
+        this.walls.right.visibility = rightFacing ? lowOpacity : fullOpacity;
+
+        // Left wall (X-): visible when camera is right (PI/2 range)
+        const leftFacing = normalizedAlpha > 0 && normalizedAlpha < Math.PI;
+        this.walls.left.visibility = leftFacing ? lowOpacity : fullOpacity;
     }
 
     checkLevelComplete() {
