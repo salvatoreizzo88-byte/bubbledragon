@@ -944,9 +944,11 @@ export default class Game3D {
 
             // Remove bubble if lifetime expired or out of bounds (arena walls)
             if (bubble.lifetime <= 0 ||
-                Math.abs(bubble.mesh.position.x) > 9 ||
-                Math.abs(bubble.mesh.position.z) > 9 ||
-                bubble.mesh.position.y > 10) {
+                Math.abs(bubble.mesh.position.x) > 90 ||
+                Math.abs(bubble.mesh.position.z) > 90 ||
+                bubble.mesh.position.y > 50) {
+
+                console.log(`🫧 Bubble removed: lifetime=${bubble.lifetime}, pos(${bubble.mesh.position.x.toFixed(1)}, ${bubble.mesh.position.y.toFixed(1)}, ${bubble.mesh.position.z.toFixed(1)})`);
 
                 // If bubble had enemy, release it inside arena
                 if (bubble.trappedEnemy) {
@@ -954,8 +956,8 @@ export default class Game3D {
                     bubble.trappedEnemy.mesh.setEnabled(true);
                     // Clamp position to inside arena
                     const releasePos = bubble.mesh.position.clone();
-                    releasePos.x = Math.max(-8, Math.min(8, releasePos.x));
-                    releasePos.z = Math.max(-8, Math.min(8, releasePos.z));
+                    releasePos.x = Math.max(-80, Math.min(80, releasePos.x));
+                    releasePos.z = Math.max(-80, Math.min(80, releasePos.z));
                     releasePos.y = 1;
                     bubble.trappedEnemy.mesh.position = releasePos;
                 }
