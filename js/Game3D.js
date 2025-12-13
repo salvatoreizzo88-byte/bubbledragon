@@ -219,7 +219,7 @@ export default class Game3D {
         BABYLON.SceneLoader.ImportMesh(
             "",
             "assets/models/",
-            "Dragon.glb",
+            "cute_dragon.glb",
             scene,
             (meshes, particleSystems, skeletons, animationGroups) => {
                 console.log('🐉 Dragon model loaded!');
