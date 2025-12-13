@@ -848,40 +848,29 @@ export default class Game3D {
         }, this.scene);
 
         bubble.position = this.player.position.clone();
-        bubble.position.y += 0.5;
+        bubble.position.y += 2; // Higher so visible from above
 
         const bubbleMat = new BABYLON.StandardMaterial('bubbleMat', this.scene);
-        bubbleMat.diffuseColor = new BABYLON.Color3(0.3, 0.8, 1);
-        bubbleMat.alpha = 0.5;
-        bubbleMat.emissiveColor = new BABYLON.Color3(0.2, 0.5, 0.8);
+        bubbleMat.diffuseColor = new BABYLON.Color3(0.3, 0.9, 1);
+        bubbleMat.alpha = 0.7;
+        bubbleMat.emissiveColor = new BABYLON.Color3(0.4, 0.8, 1); // Bright glow
         bubbleMat.specularColor = new BABYLON.Color3(1, 1, 1);
         bubble.material = bubbleMat;
 
-        // Direction based on last movement (joystick or keys)
-        let dirX = -this.joystickX || 0;
-        let dirZ = this.joystickY || 0;
-
-        // If no joystick input, shoot forward
-        if (Math.abs(dirX) < 0.1 && Math.abs(dirZ) < 0.1) {
-            dirZ = -1; // Default: shoot forward (up on screen)
-        }
-
-        // Normalize direction
-        const len = Math.sqrt(dirX * dirX + dirZ * dirZ);
-        if (len > 0) {
-            dirX /= len;
-            dirZ /= len;
-        }
+        // Direction based on player facing direction
+        const playerAngle = this.player.rotation.y - Math.PI; // Undo the +PI offset
+        let dirX = Math.sin(playerAngle);
+        let dirZ = Math.cos(playerAngle);
 
         this.bubbles.push({
             mesh: bubble,
-            velocity: new BABYLON.Vector3(dirX * 0.8, 0, dirZ * 0.8), // Faster for big arena
+            velocity: new BABYLON.Vector3(dirX * 0.8, 0, dirZ * 0.8),
             lifetime: 300, // 5 seconds
             hasEnemy: false,
             trappedEnemy: null
         });
 
-        console.log('🫧 Bubble shot!');
+        console.log(`🫧 Bubble shot at pos(${bubble.position.x.toFixed(1)}, ${bubble.position.y.toFixed(1)}, ${bubble.position.z.toFixed(1)}) dir(${dirX.toFixed(2)}, ${dirZ.toFixed(2)})`);
     }
 
     // Update all bubbles - movement and collision
