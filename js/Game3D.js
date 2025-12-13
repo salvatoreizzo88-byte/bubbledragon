@@ -127,9 +127,10 @@ export default class Game3D {
         wallMat.diffuseTexture = new BABYLON.Texture('assets/textures/slime_wall.png', scene);
         wallMat.diffuseTexture.uScale = 4 / SEGMENTS;
         wallMat.diffuseTexture.vScale = 2;
-        wallMat.specularColor = new BABYLON.Color3(0.4, 0.2, 0.6);
-        wallMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15);
-        wallMat.alpha = 0.9;
+        wallMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.3);
+        wallMat.emissiveColor = new BABYLON.Color3(0.15, 0.08, 0.2);
+        wallMat.alpha = 0.95;
+        wallMat.backFaceCulling = false;
 
         // Store all wall segments
         this.wallSegments = [];
@@ -139,7 +140,7 @@ export default class Game3D {
         for (let i = 0; i < SEGMENTS; i++) {
             const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
             const seg = BABYLON.MeshBuilder.CreateBox(`frontSeg${i}`, {
-                width: segmentWidth + 0.01, height: wallHeight, depth: wallThickness
+                width: segmentWidth + 0.1, height: wallHeight, depth: wallThickness
             }, scene);
             seg.position = new BABYLON.Vector3(x, wallHeight / 2, arenaSize / 2);
             seg.material = wallMat.clone(`frontMat${i}`);
@@ -152,7 +153,7 @@ export default class Game3D {
         for (let i = 0; i < SEGMENTS; i++) {
             const x = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
             const seg = BABYLON.MeshBuilder.CreateBox(`backSeg${i}`, {
-                width: segmentWidth + 0.01, height: wallHeight, depth: wallThickness
+                width: segmentWidth + 0.1, height: wallHeight, depth: wallThickness
             }, scene);
             seg.position = new BABYLON.Vector3(x, wallHeight / 2, -arenaSize / 2);
             seg.material = wallMat.clone(`backMat${i}`);
@@ -164,7 +165,7 @@ export default class Game3D {
         for (let i = 0; i < SEGMENTS; i++) {
             const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
             const seg = BABYLON.MeshBuilder.CreateBox(`leftSeg${i}`, {
-                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.01
+                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.1
             }, scene);
             seg.position = new BABYLON.Vector3(-arenaSize / 2, wallHeight / 2, z);
             seg.material = wallMat.clone(`leftMat${i}`);
@@ -176,7 +177,7 @@ export default class Game3D {
         for (let i = 0; i < SEGMENTS; i++) {
             const z = -arenaSize / 2 + segmentWidth / 2 + i * segmentWidth;
             const seg = BABYLON.MeshBuilder.CreateBox(`rightSeg${i}`, {
-                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.01
+                width: wallThickness, height: wallHeight, depth: segmentWidth + 0.1
             }, scene);
             seg.position = new BABYLON.Vector3(arenaSize / 2, wallHeight / 2, z);
             seg.material = wallMat.clone(`rightMat${i}`);
