@@ -125,34 +125,44 @@ export default class Game3D {
     }
 
     createArena(scene) {
-        // Floor with checkerboard pattern for orientation
+        // Floor
         const floor = BABYLON.MeshBuilder.CreateGround(
             'floor',
-            { width: 200, height: 200, subdivisions: 20 },
+            { width: 200, height: 200 },
             scene
         );
         const floorMat = new BABYLON.StandardMaterial('floorMat', scene);
-
-        // Create checkerboard texture procedurally with HIGH CONTRAST
-        const checkerSize = 512;
-        const dynamicTexture = new BABYLON.DynamicTexture('checkerTex', checkerSize, scene);
-        const ctx = dynamicTexture.getContext();
-        const tileSize = checkerSize / 10; // 10x10 tiles
-        for (let x = 0; x < 10; x++) {
-            for (let y = 0; y < 10; y++) {
-                // High contrast colors: dark purple vs bright purple
-                ctx.fillStyle = (x + y) % 2 === 0 ? '#5020a0' : '#200050';
-                ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
-            }
-        }
-        dynamicTexture.update();
-
-        floorMat.diffuseTexture = dynamicTexture;
-        floorMat.diffuseTexture.uScale = 20;  // More tiles visible
-        floorMat.diffuseTexture.vScale = 20;
-        floorMat.specularColor = new BABYLON.Color3(0.2, 0.1, 0.3);
-        floorMat.emissiveColor = new BABYLON.Color3(0.05, 0.02, 0.1);
+        floorMat.diffuseColor = new BABYLON.Color3(0.15, 0.08, 0.3);
+        floorMat.specularColor = new BABYLON.Color3(0.1, 0.05, 0.2);
         floor.material = floorMat;
+
+        // Create grid lines for orientation
+        const gridMat = new BABYLON.StandardMaterial('gridMat', scene);
+        gridMat.diffuseColor = new BABYLON.Color3(0.4, 0.2, 0.6);
+        gridMat.emissiveColor = new BABYLON.Color3(0.3, 0.15, 0.45);
+
+        const gridSpacing = 20;
+        const gridSize = 200;
+
+        // Horizontal lines (along X axis)
+        for (let z = -gridSize / 2; z <= gridSize / 2; z += gridSpacing) {
+            const line = BABYLON.MeshBuilder.CreateBox(`gridH${z}`, {
+                width: gridSize, height: 0.2, depth: 0.5
+            }, scene);
+            line.position = new BABYLON.Vector3(0, 0.1, z);
+            line.material = gridMat;
+        }
+
+        // Vertical lines (along Z axis)
+        for (let x = -gridSize / 2; x <= gridSize / 2; x += gridSpacing) {
+            const line = BABYLON.MeshBuilder.CreateBox(`gridV${x}`, {
+                width: 0.5, height: 0.2, depth: gridSize
+            }, scene);
+            line.position = new BABYLON.Vector3(x, 0.1, 0);
+            line.material = gridMat;
+        }
+
+        console.log('🏁 Grid created!');
 
         // Walls (4 sides) - SEGMENTED for smooth transparency
         const wallHeight = 8;
@@ -834,7 +844,7 @@ export default class Game3D {
     // Called when shooting bubble
     shootBubble() {
         const bubble = BABYLON.MeshBuilder.CreateSphere('bubble', {
-            diameter: 1.0
+            diameter: 5.0  // Larger for big arena
         }, this.scene);
 
         bubble.position = this.player.position.clone();
@@ -865,7 +875,7 @@ export default class Game3D {
 
         this.bubbles.push({
             mesh: bubble,
-            velocity: new BABYLON.Vector3(dirX * 0.30, 0, dirZ * 0.30), // FASTER
+            velocity: new BABYLON.Vector3(dirX * 0.8, 0, dirZ * 0.8), // Faster for big arena
             lifetime: 300, // 5 seconds
             hasEnemy: false,
             trappedEnemy: null
