@@ -238,25 +238,37 @@ export default class Game3D {
     }
 
     createPlatforms(scene) {
+        // Platform material - glowing purple
         const platformMat = new BABYLON.StandardMaterial('platformMat', scene);
         platformMat.diffuseColor = new BABYLON.Color3(0.5, 0.3, 0.8);
         platformMat.specularColor = new BABYLON.Color3(0.3, 0.2, 0.5);
-        platformMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15);
+        platformMat.emissiveColor = new BABYLON.Color3(0.15, 0.08, 0.25);
 
-        // Create several platforms at different heights
+        // Platforms distributed across 200x200 arena at various heights
         const platforms = [
-            { x: 0, y: 2, z: 0, width: 8, depth: 3 },
-            { x: -5, y: 4, z: -3, width: 5, depth: 2 },
-            { x: 5, y: 4, z: -3, width: 5, depth: 2 },
-            { x: 0, y: 6, z: -6, width: 10, depth: 2 },
-            { x: -7, y: 3, z: 5, width: 4, depth: 2 },
-            { x: 7, y: 3, z: 5, width: 4, depth: 2 },
+            // Central area
+            { x: 0, y: 3, z: 0, width: 20, depth: 10 },
+            { x: 0, y: 6, z: -25, width: 15, depth: 8 },
+            { x: 0, y: 5, z: 25, width: 15, depth: 8 },
+            // Left side
+            { x: -40, y: 4, z: 0, width: 12, depth: 12 },
+            { x: -60, y: 6, z: -30, width: 10, depth: 10 },
+            { x: -50, y: 5, z: 40, width: 10, depth: 10 },
+            { x: -30, y: 8, z: 20, width: 8, depth: 8 },
+            // Right side
+            { x: 40, y: 4, z: 0, width: 12, depth: 12 },
+            { x: 60, y: 6, z: 30, width: 10, depth: 10 },
+            { x: 50, y: 5, z: -40, width: 10, depth: 10 },
+            { x: 30, y: 8, z: -20, width: 8, depth: 8 },
+            // Corner platforms
+            { x: -70, y: 7, z: -70, width: 15, depth: 15 },
+            { x: 70, y: 7, z: 70, width: 15, depth: 15 },
         ];
 
         platforms.forEach((p, i) => {
             const platform = BABYLON.MeshBuilder.CreateBox(`platform${i}`, {
                 width: p.width,
-                height: 0.5,
+                height: 1,
                 depth: p.depth
             }, scene);
             platform.position = new BABYLON.Vector3(p.x, p.y, p.z);
@@ -270,9 +282,91 @@ export default class Game3D {
                 z: p.z,
                 width: p.width,
                 depth: p.depth,
-                height: 0.5
+                height: 1
             });
         });
+
+        console.log(`🟩 Created ${platforms.length} platforms!`);
+
+        // === PILLARS ===
+        const pillarMat = new BABYLON.StandardMaterial('pillarMat', scene);
+        pillarMat.diffuseColor = new BABYLON.Color3(0.3, 0.2, 0.5);
+        pillarMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.2);
+
+        const pillarPositions = [
+            { x: -25, z: -25 }, { x: 25, z: -25 },
+            { x: -25, z: 25 }, { x: 25, z: 25 },
+            { x: -50, z: 0 }, { x: 50, z: 0 },
+            { x: 0, z: -50 }, { x: 0, z: 50 },
+            { x: -75, z: -50 }, { x: 75, z: 50 },
+            { x: -75, z: 50 }, { x: 75, z: -50 },
+        ];
+
+        pillarPositions.forEach((p, i) => {
+            const height = 8 + Math.random() * 6;
+            const pillar = BABYLON.MeshBuilder.CreateCylinder(`pillar${i}`, {
+                diameter: 3,
+                height: height
+            }, scene);
+            pillar.position = new BABYLON.Vector3(p.x, height / 2, p.z);
+            pillar.material = pillarMat;
+        });
+
+        console.log(`🏛️ Created ${pillarPositions.length} pillars!`);
+
+        // === DECORATIVE CRYSTALS ===
+        const crystalMat = new BABYLON.StandardMaterial('crystalMat', scene);
+        crystalMat.diffuseColor = new BABYLON.Color3(0.8, 0.3, 1);
+        crystalMat.emissiveColor = new BABYLON.Color3(0.5, 0.2, 0.8);
+        crystalMat.alpha = 0.8;
+
+        const crystalPositions = [
+            { x: -90, z: 0 }, { x: 90, z: 0 },
+            { x: 0, z: -90 }, { x: 0, z: 90 },
+            { x: -85, z: -85 }, { x: 85, z: 85 },
+            { x: -85, z: 85 }, { x: 85, z: -85 },
+        ];
+
+        crystalPositions.forEach((p, i) => {
+            const crystal = BABYLON.MeshBuilder.CreatePolyhedron(`crystal${i}`, {
+                type: 1, // Octahedron (diamond shape)
+                size: 3 + Math.random() * 2
+            }, scene);
+            crystal.position = new BABYLON.Vector3(p.x, 5 + Math.random() * 3, p.z);
+            crystal.rotation.y = Math.random() * Math.PI;
+            crystal.material = crystalMat;
+        });
+
+        console.log(`💎 Created ${crystalPositions.length} crystals!`);
+
+        // === INTERNAL WALLS (tactical corridors) ===
+        const innerWallMat = new BABYLON.StandardMaterial('innerWallMat', scene);
+        innerWallMat.diffuseColor = new BABYLON.Color3(0.25, 0.15, 0.4);
+        innerWallMat.emissiveColor = new BABYLON.Color3(0.1, 0.05, 0.15);
+
+        const innerWalls = [
+            // Horizontal walls
+            { x: -30, z: 0, w: 30, h: 5, d: 2 },
+            { x: 30, z: 0, w: 30, h: 5, d: 2 },
+            // Vertical walls
+            { x: 0, z: -35, w: 2, h: 5, d: 30 },
+            { x: 0, z: 35, w: 2, h: 5, d: 30 },
+            // Corner walls
+            { x: -55, z: -55, w: 25, h: 5, d: 2 },
+            { x: 55, z: 55, w: 25, h: 5, d: 2 },
+        ];
+
+        innerWalls.forEach((w, i) => {
+            const wall = BABYLON.MeshBuilder.CreateBox(`innerWall${i}`, {
+                width: w.w,
+                height: w.h,
+                depth: w.d
+            }, scene);
+            wall.position = new BABYLON.Vector3(w.x, w.h / 2, w.z);
+            wall.material = innerWallMat;
+        });
+
+        console.log(`🧱 Created ${innerWalls.length} inner walls!`);
     }
 
     createPlayer(scene) {
